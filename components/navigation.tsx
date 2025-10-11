@@ -15,7 +15,7 @@ export function Navigation() {
         <div className="container mx-auto px-6 md:px-8 py-3">
           <div className="flex items-center justify-between gap-2 md:gap-4">
             <Link href="/" className="flex items-center gap-2 md:gap-3 group flex-shrink min-w-0">
-              <div className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-11 md:h-11 shimmer flex-shrink-0">
+              <div className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-3 md:h-3 lg:w-2 lg:h-2 shimmer flex-shrink-0">
                 <Image
                   src="/sirens-fortune-logo.jpeg"
                   alt="Sirens Fortune Logo"

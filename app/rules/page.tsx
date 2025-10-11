@@ -11,13 +11,13 @@ export default function RulesPage() {
       <AnimatedFish />
       <Navigation />
 
-      <main className="relative z-10 pt-32 md:pt-40 pb-4 px-2 sm:px-4">
-        <div className="container mx-auto max-w-full">
-          <div className="mb-4">
+      <main className="relative z-10 pt-16 md:pt-20 pb-0 px-0">
+        <div className="container mx-auto max-w-full px-0">
+          <div className="mb-1 px-2">
             <BackButton />
           </div>
 
-          <div className="relative w-full h-[calc(100vh-180px)] sm:h-[calc(100vh-160px)]">
+          <div className="relative w-full h-[calc(100vh-50px)]">
             <Image
               src="/deepwater-decrees-flyer.png"
               alt="Deepwater Decrees - Game Rules"

@@ -18,7 +18,7 @@ export default function HomePage() {
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 pb-8 pt-32 md:pt-36">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center">
-            <div className="mb-4 sm:mb-6 relative inline-block px-2">
+            <div className="mb-4 sm:mb-6 relative inline-block px-2 max-w-md mx-auto">
               <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary opacity-20 blur-2xl animate-pulse" />
               <Image
                 src="/sirens-fortune-logo.jpeg"
