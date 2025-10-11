@@ -1,8 +1,7 @@
 "use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useEffect, useRef, useState } from "react"
-import { createCryptoOnrampSession } from "@/app/actions/stripe"
+import { useEffect, useState } from "react"
 
 interface DepositModalProps {
   open: boolean
@@ -10,79 +9,37 @@ interface DepositModalProps {
 }
 
 export function DepositModal({ open, onOpenChange }: DepositModalProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    if (!open || !containerRef.current) return
-
-    let stripeOnrampInstance: any = null
-
-    const initializeOnramp = async () => {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const script = document.createElement("script")
-        script.src = "https://crypto-js.stripe.com/crypto-onramp-outer.js"
-        script.async = true
-
-        await new Promise((resolve, reject) => {
-          script.onload = resolve
-          script.onerror = reject
-          document.body.appendChild(script)
-        })
-
-        const { clientSecret } = await createCryptoOnrampSession()
-
-        if (containerRef.current && (window as any).StripeOnramp) {
-          const stripeOnramp = (window as any).StripeOnramp(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-          stripeOnrampInstance = stripeOnramp
-
-          stripeOnramp
-            .createEmbeddedComponent({
-              clientSecret,
-              appearance: {
-                theme: "dark",
-              },
-            })
-            .mount(containerRef.current)
-        }
-      } catch (err) {
-        console.error("[v0] Failed to initialize Stripe Onramp:", err)
-        setError("Failed to load deposit form. Please try again.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    initializeOnramp()
-
-    return () => {
-      if (stripeOnrampInstance) {
-        stripeOnrampInstance.destroy()
-      }
+    if (open) {
+      setIsLoaded(false)
     }
   }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto bg-card border-primary/30">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold colorful-text font-serif">Deposit Crypto</DialogTitle>
+      <DialogContent className="max-w-3xl w-full h-[80vh] bg-card border-primary/30 overflow-hidden p-0">
+        <DialogHeader className="p-4">
+          <DialogTitle className="text-2xl font-bold colorful-text font-serif text-center">
+            Deposit Crypto
+          </DialogTitle>
         </DialogHeader>
-        {isLoading && (
-          <div className="min-h-[400px] flex items-center justify-center">
-            <div className="text-foreground font-serif">Loading deposit form...</div>
-          </div>
-        )}
-        {error && (
-          <div className="min-h-[400px] flex items-center justify-center">
-            <div className="text-destructive font-serif">{error}</div>
-          </div>
-        )}
-        <div ref={containerRef} className="min-h-[400px]" />
+
+        <div className="relative w-full h-full">
+          {!isLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-card/80 z-10">
+              <div className="text-foreground font-serif">Loading deposit widget...</div>
+            </div>
+          )}
+
+          <iframe
+            src="https://sirenspay.vercel.app/api/deposit.js"
+            className="w-full h-full border-0"
+            onLoad={() => setIsLoaded(true)}
+            allow="clipboard-read; clipboard-write; accelerometer; autoplay; camera; payment; usb"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )
