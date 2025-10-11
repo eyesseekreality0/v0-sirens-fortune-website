@@ -14,14 +14,12 @@ interface FishData {
 }
 
 const fishColors = [
-  "text-pink-400",
-  "text-blue-400",
-  "text-purple-400",
-  "text-green-400",
-  "text-cyan-400",
-  "text-yellow-400",
-  "text-orange-400",
-  "text-rose-400",
+  "text-[var(--fish-pink)]",
+  "text-[var(--fish-blue)]",
+  "text-[var(--fish-purple)]",
+  "text-[var(--fish-green)]",
+  "text-[var(--fish-cyan)]",
+  "text-[var(--fish-rose)]",
 ]
 
 export function AnimatedFish() {

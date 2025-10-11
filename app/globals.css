@@ -35,6 +35,37 @@
   --input: oklch(0.3 0.1 240);
   --ring: var(--vibrant-purple);
   --radius: 1rem;
+
+  /* Added semantic button gradient tokens */
+  --button-primary-from: oklch(0.65 0.2 230); /* Blue start */
+  --button-primary-via: oklch(0.75 0.18 200); /* Cyan middle */
+  --button-primary-to: oklch(0.6 0.22 240); /* Blue end */
+  --button-primary-hover-from: oklch(0.6 0.22 230);
+  --button-primary-hover-via: oklch(0.7 0.2 200);
+  --button-primary-hover-to: oklch(0.55 0.24 240);
+
+  --button-secondary-from: oklch(0.65 0.25 290); /* Purple start */
+  --button-secondary-via: oklch(0.7 0.25 340); /* Pink middle */
+  --button-secondary-to: oklch(0.6 0.25 290); /* Purple end */
+  --button-secondary-hover-from: oklch(0.6 0.27 290);
+  --button-secondary-hover-via: oklch(0.65 0.27 340);
+  --button-secondary-hover-to: oklch(0.55 0.27 290);
+
+  --button-tertiary-from: oklch(0.7 0.22 150); /* Green start */
+  --button-tertiary-via: oklch(0.72 0.2 160); /* Emerald middle */
+  --button-tertiary-to: oklch(0.68 0.22 150); /* Green end */
+  --button-tertiary-hover-from: oklch(0.65 0.24 150);
+  --button-tertiary-hover-via: oklch(0.67 0.22 160);
+  --button-tertiary-hover-to: oklch(0.63 0.24 150);
+
+  /* Fish color tokens */
+  --fish-pink: oklch(0.7 0.2 340);
+  --fish-blue: oklch(0.65 0.2 240);
+  --fish-purple: oklch(0.65 0.22 290);
+  --fish-green: oklch(0.7 0.2 150);
+  --fish-cyan: oklch(0.75 0.16 200);
+  --fish-rose: oklch(0.68 0.22 350);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -115,6 +146,37 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Added button gradient color mappings */
+  --color-button-primary-from: var(--button-primary-from);
+  --color-button-primary-via: var(--button-primary-via);
+  --color-button-primary-to: var(--button-primary-to);
+  --color-button-primary-hover-from: var(--button-primary-hover-from);
+  --color-button-primary-hover-via: var(--button-primary-hover-via);
+  --color-button-primary-hover-to: var(--button-primary-hover-to);
+
+  --color-button-secondary-from: var(--button-secondary-from);
+  --color-button-secondary-via: var(--button-secondary-via);
+  --color-button-secondary-to: var(--button-secondary-to);
+  --color-button-secondary-hover-from: var(--button-secondary-hover-from);
+  --color-button-secondary-hover-via: var(--button-secondary-hover-via);
+  --color-button-secondary-hover-to: var(--button-secondary-hover-to);
+
+  --color-button-tertiary-from: var(--button-tertiary-from);
+  --color-button-tertiary-via: var(--button-tertiary-via);
+  --color-button-tertiary-to: var(--button-tertiary-to);
+  --color-button-tertiary-hover-from: var(--button-tertiary-hover-from);
+  --color-button-tertiary-hover-via: var(--button-tertiary-hover-via);
+  --color-button-tertiary-hover-to: var(--button-tertiary-hover-to);
+
+  /* Fish color mappings */
+  --color-fish-pink: var(--fish-pink);
+  --color-fish-blue: var(--fish-blue);
+  --color-fish-purple: var(--fish-purple);
+  --color-fish-green: var(--fish-green);
+  --color-fish-cyan: var(--fish-cyan);
+  --color-fish-rose: var(--fish-rose);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
