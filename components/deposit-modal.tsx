@@ -31,7 +31,6 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
       <DialogContent className="max-w-md bg-card border-primary/30 text-center">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold colorful-text font-serif">
-            Deposit Crypto
           </DialogTitle>
         </DialogHeader>
 
