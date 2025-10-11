@@ -1,7 +1,8 @@
 "use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 interface DepositModalProps {
   open: boolean
@@ -9,36 +10,49 @@ interface DepositModalProps {
 }
 
 export function DepositModal({ open, onOpenChange }: DepositModalProps) {
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    if (open) {
-      setIsLoaded(false)
-    }
-  }, [open])
+  const handleDeposit = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    // Open your deposit.js route in a new tab
+    window.open("https://sirenspay.vercel.app/api/deposit.js", "_blank")
+
+    // Auto-close modal after 1.5 seconds
+    setTimeout(() => {
+      setIsLoading(false)
+      onOpenChange(false)
+    }, 1500)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full h-[80vh] bg-card border-primary/30 overflow-hidden p-0">
-        <DialogHeader className="p-4">
-          <DialogTitle className="text-2xl font-bold colorful-text font-serif text-center">
+      <DialogContent className="max-w-md bg-card border-primary/30 text-center">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold colorful-text font-serif">
             Deposit Crypto
           </DialogTitle>
         </DialogHeader>
 
-        <div className="relative w-full h-full">
-          {!isLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-card/80 z-10">
-              <div className="text-foreground font-serif">Loading deposit widget...</div>
+        <div className="flex flex-col items-center justify-center gap-6 py-8">
+          {isLoading ? (
+            <div className="text-foreground font-serif text-lg animate-pulse">
+              Opening deposit page...
             </div>
+          ) : (
+            <>
+              <p className="text-foreground font-serif text-lg">
+                Click below to open the deposit page.
+              </p>
+              <Button
+                onClick={handleDeposit}
+                className="font-serif text-lg px-6 py-3 rounded-2xl"
+              >
+                Open Deposit Page
+              </Button>
+            </>
           )}
-
-          <iframe
-            src="https://sirenspay.vercel.app/api/deposit.js"
-            className="w-full h-full border-0"
-            onLoad={() => setIsLoaded(true)}
-            allow="clipboard-read; clipboard-write; accelerometer; autoplay; camera; payment; usb"
-          />
         </div>
       </DialogContent>
     </Dialog>
