@@ -74,11 +74,10 @@ export function DepositPage() {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-bold colorful-text font-serif">Link</h3>
+                  <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Link</h3>
                   <p className="text-sm text-foreground/70 text-center">
-                    Stripe Crypto On-ramp
+                    Card Deposit
                   </p>
-                  <p className="text-xs text-foreground/50 mt-2">Opens in new tab</p>
                 </div>
               </button>
 
@@ -92,11 +91,10 @@ export function DepositPage() {
                   <div className="p-4 rounded-xl bg-gradient-to-br from-accent/20 to-primary/20 group-hover:from-accent/30 group-hover:to-primary/30 transition-colors">
                     <CreditCard className="w-8 h-8 text-accent" />
                   </div>
-                  <h3 className="text-2xl font-bold colorful-text font-serif">Card</h3>
+                  <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Helio</h3>
                   <p className="text-sm text-foreground/70 text-center">
-                    Pay with credit or debit card
+                    Pay with card or crypto
                   </p>
-                  <p className="text-xs text-foreground/50 mt-2">Opens in new tab</p>
                 </div>
               </button>
             </div>
