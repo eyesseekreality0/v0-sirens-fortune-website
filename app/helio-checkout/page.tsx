@@ -1,60 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { HelioCheckout } from "@heliofi/checkout-react"
 
 export default function HelioCheckoutPage() {
   const [amount, setAmount] = useState<string>("")
   const [showCheckout, setShowCheckout] = useState(false)
-  const [scriptLoaded, setScriptLoaded] = useState(false)
 
-  // Updated Paylink ID
   const PAYLINK_ID = "68f2905e85c82a99dc39eb20"
 
   const quickAmounts = ["5", "10", "15", "25", "50", "100"]
-
-  const loadCheckout = (amountValue: string) => {
-    const container = document.getElementById("helioCheckoutContainer")
-    if (container && window.helioCheckout && scriptLoaded && amountValue) {
-      container.innerHTML = ""
-      window.helioCheckout(container, {
-        paylinkId: PAYLINK_ID,
-        theme: { themeMode: "dark" },
-        primaryColor: "#abff09",
-        neutralColor: "#8200b7",
-        amount: amountValue,
-      })
-    }
-  }
-
-  // Load Helio SDK
-  useEffect(() => {
-    const script = document.createElement("script")
-    script.type = "module"
-    script.crossOrigin = "anonymous"
-    script.src = "https://embed.hel.io/assets/index-v1.js"
-    document.body.appendChild(script)
-
-    script.onload = () => {
-      setScriptLoaded(true)
-    }
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script)
-      }
-    }
-  }, [])
-
-  // Render checkout when amount is set
-  useEffect(() => {
-    if (scriptLoaded && amount && showCheckout) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        loadCheckout(amount)
-      }, 100)
-    }
-  }, [amount, scriptLoaded, showCheckout])
 
   const handleSelectAmount = (val: string) => {
     setAmount(val)
@@ -64,6 +20,14 @@ export default function HelioCheckoutPage() {
   const handleChangeAmount = () => {
     setShowCheckout(false)
     setAmount("")
+  }
+
+  const helioConfig = {
+    paylinkId: PAYLINK_ID,
+    theme: { themeMode: "dark" as const },
+    primaryColor: "#abff09",
+    neutralColor: "#8200b7",
+    amount: amount,
   }
 
   return (
@@ -97,15 +61,11 @@ export default function HelioCheckoutPage() {
             </Button>
           </div>
 
-          <div id="helioCheckoutContainer" className="flex-1 w-full max-w-3xl flex items-center justify-center p-6" />
+          <div className="flex-1 w-full max-w-3xl flex items-center justify-center p-6">
+            <HelioCheckout config={helioConfig} />
+          </div>
         </>
       )}
     </div>
   )
-}
-
-declare global {
-  interface Window {
-    helioCheckout?: (el: HTMLElement, config: any) => void
-  }
 }
