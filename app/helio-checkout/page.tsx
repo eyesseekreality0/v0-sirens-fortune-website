@@ -4,25 +4,30 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 
 export default function HelioCheckoutPage() {
-  const [amount, setAmount] = useState<string>("5.99")
-  const [inputAmount, setInputAmount] = useState<string>("5.99")
+  const [amount, setAmount] = useState<string>("")
+  const [inputAmount, setInputAmount] = useState<string>("")
   const [isCheckoutReady, setIsCheckoutReady] = useState(false)
+  const [scriptLoaded, setScriptLoaded] = useState(false)
 
-  const loadCheckout = () => {
+  const loadCheckout = (amountValue: string) => {
     const container = document.getElementById("helioCheckoutContainer")
-    if (container && window.helioCheckout) {
+    if (container && window.helioCheckout && scriptLoaded) {
       // Clear previous checkout
       container.innerHTML = ""
       
-      window.helioCheckout(container, {
+      const config: any = {
         paylinkId: "68ef6f7d89c8017dde33644f",
         theme: { themeMode: "dark" },
         primaryColor: "#13ffbd",
         neutralColor: "#8200b7",
-        amount: amount,
-        paymentRequestId: undefined,
-      })
+      }
+
+      // Only add amount if it's provided and valid
+      if (amountValue && parseFloat(amountValue) > 0) {
+        config.amount = amountValue
+      }
       
+      window.helioCheckout(container, config)
       setIsCheckoutReady(true)
     }
   }
@@ -36,7 +41,9 @@ export default function HelioCheckoutPage() {
     document.body.appendChild(script)
 
     script.onload = () => {
-      loadCheckout()
+      setScriptLoaded(true)
+      // Load checkout without amount initially (let user choose)
+      loadCheckout("")
     }
 
     return () => {
@@ -44,15 +51,29 @@ export default function HelioCheckoutPage() {
         document.body.removeChild(script)
       }
     }
-  }, [amount])
+  }, [])
+
+  useEffect(() => {
+    if (scriptLoaded && amount !== null) {
+      loadCheckout(amount)
+    }
+  }, [amount, scriptLoaded])
 
   const handleAmountUpdate = () => {
     const numAmount = parseFloat(inputAmount)
     if (numAmount > 0) {
       setAmount(inputAmount)
     } else {
-      alert("Please enter a valid amount greater than 0")
+      // Allow clearing the amount to let user choose
+      setAmount("")
+      loadCheckout("")
     }
+  }
+
+  const handleClearAmount = () => {
+    setAmount("")
+    setInputAmount("")
+    loadCheckout("")
   }
 
   return (
@@ -62,7 +83,7 @@ export default function HelioCheckoutPage() {
         <div className="container mx-auto max-w-2xl">
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
             <label htmlFor="amount-input" className="text-foreground font-semibold whitespace-nowrap">
-              Deposit Amount:
+              Deposit Amount (Optional):
             </label>
             <div className="flex gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
@@ -75,20 +96,33 @@ export default function HelioCheckoutPage() {
                   value={inputAmount}
                   onChange={(e) => setInputAmount(e.target.value)}
                   className="w-full sm:w-32 pl-7 pr-3 py-2 bg-input border-2 border-border rounded-lg text-foreground focus:outline-none focus:border-primary transition-colors"
-                  placeholder="0.00"
+                  placeholder="Enter amount"
                 />
               </div>
               <Button
                 onClick={handleAmountUpdate}
                 className="bg-gradient-to-br from-primary via-accent to-secondary hover:from-primary/90 hover:via-accent/90 hover:to-secondary/90 text-primary-foreground font-bold px-6"
               >
-                Update
+                {inputAmount ? "Set Amount" : "User Choice"}
               </Button>
+              {amount && (
+                <Button
+                  onClick={handleClearAmount}
+                  variant="outline"
+                  className="px-4"
+                >
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
           {isCheckoutReady && (
             <p className="text-center text-sm text-muted-foreground mt-2">
-              Current amount: <span className="font-bold text-foreground">${amount}</span>
+              {amount ? (
+                <>Current amount: <span className="font-bold text-foreground">${amount}</span></>
+              ) : (
+                <span className="text-foreground">User can choose amount in checkout</span>
+              )}
             </p>
           )}
         </div>
