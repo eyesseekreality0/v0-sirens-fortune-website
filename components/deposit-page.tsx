@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Navigation } from "@/components/navigation"
 import { OceanBackground } from "@/components/ocean-background"
 import { AnimatedFish } from "@/components/animated-fish"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { CreditCard, Link as LinkIcon } from "lucide-react"
-import { useState } from "react"
+import { CreditCard, ArrowLeft } from "lucide-react"
 
 export function DepositPage() {
   const [selectedMethod, setSelectedMethod] = useState<"link" | "helio" | null>(null)
@@ -37,7 +36,9 @@ export function DepositPage() {
       }
 
       return () => {
-        document.head.removeChild(script)
+        if (document.head.contains(script)) {
+          document.head.removeChild(script)
+        }
       }
     }
   }, [selectedMethod])
@@ -67,7 +68,19 @@ export function DepositPage() {
                 >
                   <div className="flex flex-col items-center gap-4">
                     <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 group-hover:from-primary/30 group-hover:to-secondary/30 transition-colors">
-                      <LinkIcon className="w-8 h-8 text-primary" />
+                      <svg
+                        className="w-8 h-8 text-primary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                        />
+                      </svg>
                     </div>
                     <h3 className="text-2xl font-bold colorful-text font-serif">Link</h3>
                     <p className="text-sm text-foreground/70 text-center">
@@ -99,7 +112,8 @@ export function DepositPage() {
                 onClick={() => setSelectedMethod(null)}
                 className="mb-6 text-primary hover:text-primary/80 transition-colors flex items-center gap-2"
               >
-                ← Back
+                <ArrowLeft className="w-5 h-5" />
+                Back
               </button>
               <h2 className="text-3xl font-bold colorful-text font-serif mb-6">Link Deposit</h2>
               <div className="flex items-center justify-center min-h-96">
@@ -116,7 +130,8 @@ export function DepositPage() {
                 onClick={() => setSelectedMethod(null)}
                 className="mb-6 text-primary hover:text-primary/80 transition-colors flex items-center gap-2"
               >
-                ← Back
+                <ArrowLeft className="w-5 h-5" />
+                Back
               </button>
               <h2 className="text-3xl font-bold colorful-text font-serif mb-6">Card Deposit</h2>
               <div
