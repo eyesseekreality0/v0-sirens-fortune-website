@@ -10,38 +10,41 @@ import { CreditCard, ArrowLeft } from "lucide-react"
 
 export function DepositPage() {
   const [selectedMethod, setSelectedMethod] = useState<"link" | "helio" | null>(null)
+  const [helioLoaded, setHelioLoaded] = useState(false)
 
   useEffect(() => {
-    if (selectedMethod === "helio") {
+    if (selectedMethod === "helio" && !helioLoaded) {
       // Load Helio checkout script
       const script = document.createElement("script")
       script.type = "module"
       script.crossOrigin = "anonymous"
       script.src = "https://embed.hel.io/assets/index-v1.js"
-      document.head.appendChild(script)
-
-      // Initialize Helio after script loads
+      
       script.onload = () => {
-        if (window.helioCheckout) {
-          window.helioCheckout(
-            document.getElementById("helioCheckoutContainer"),
-            {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          const container = document.getElementById("helioCheckoutContainer")
+          if (container && window.helioCheckout) {
+            window.helioCheckout(container, {
               paylinkId: "68ef6f7d89c8017dde33644f",
               theme: { themeMode: "dark" },
               primaryColor: "#abff09",
               neutralColor: "#8200b7",
-            }
-          )
-        }
+            })
+            setHelioLoaded(true)
+          }
+        }, 100)
       }
+      
+      document.body.appendChild(script)
 
       return () => {
-        if (document.head.contains(script)) {
-          document.head.removeChild(script)
+        if (document.body.contains(script)) {
+          document.body.removeChild(script)
         }
       }
     }
-  }, [selectedMethod])
+  }, [selectedMethod, helioLoaded])
 
   return (
     <div className="min-h-screen relative">
@@ -84,7 +87,7 @@ export function DepositPage() {
                     </div>
                     <h3 className="text-2xl font-bold colorful-text font-serif">Link</h3>
                     <p className="text-sm text-foreground/70 text-center">
-                      Use your existing deposit method
+                      Stripe Crypto On-ramp
                     </p>
                   </div>
                 </button>
@@ -100,7 +103,7 @@ export function DepositPage() {
                     </div>
                     <h3 className="text-2xl font-bold colorful-text font-serif">Card</h3>
                     <p className="text-sm text-foreground/70 text-center">
-                      Deposit with credit or debit card
+                      Pay with credit or debit card
                     </p>
                   </div>
                 </button>
@@ -115,12 +118,14 @@ export function DepositPage() {
                 <ArrowLeft className="w-5 h-5" />
                 Back
               </button>
-              <h2 className="text-3xl font-bold colorful-text font-serif mb-6">Link Deposit</h2>
-              <div className="flex items-center justify-center min-h-96">
+              <h2 className="text-3xl font-bold colorful-text font-serif mb-6">Stripe Crypto On-ramp</h2>
+              <div className="w-full">
                 <iframe
                   src="https://sirenspay.vercel.app/api/deposit.js"
-                  title="Link Deposit"
-                  className="w-full h-96 rounded-lg border border-border"
+                  title="Stripe Crypto Deposit"
+                  className="w-full rounded-lg border border-border"
+                  style={{ height: "600px" }}
+                  allow="payment"
                 />
               </div>
             </div>
@@ -136,7 +141,7 @@ export function DepositPage() {
               <h2 className="text-3xl font-bold colorful-text font-serif mb-6">Card Deposit</h2>
               <div
                 id="helioCheckoutContainer"
-                className="flex items-center justify-center min-h-96"
+                className="w-full"
               />
             </div>
           )}
