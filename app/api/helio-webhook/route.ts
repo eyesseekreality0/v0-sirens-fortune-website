@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
-// ✅ Replace this with your actual Helio Webhook Secret from the Helio Dashboard
-const HELIO_WEBHOOK_SECRET = process.env.HELIO_WEBHOOK_SECRET || "your_helio_webhook_secret_here"
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+)
 
+const HELIO_WEBHOOK_SECRET = process.env.HELIO_WEBHOOK_SECRET || ""
+
+// ✅ POST /api/helio-webhook
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-
-    // 🔒 Verify webhook signature
     const signature = req.headers.get("helio-signature")
+
     if (!signature || signature !== HELIO_WEBHOOK_SECRET) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }
@@ -16,32 +21,31 @@ export async function POST(req: Request) {
     const eventType = body.eventType
     const data = body.data
 
-    // Only handle successful deposits
     if (eventType === "PAYMENT_SUCCESSFUL" && data) {
       const log = {
-        id: data.id,
-        payerEmail: data.customerEmail || "Unknown",
+        payer_email: data.customerEmail || "Unknown",
         amount: data.amount,
         currency: data.currency,
         method: data.paymentMethod || "unknown",
-        time: new Date().toISOString(),
+        tx_id: data.id,
       }
 
-      // 🗃️ Simple local logging for now
-      console.log("💰 New Deposit Logged:", log)
+      const { error } = await supabase.from("deposits").insert(log)
 
-      // (Optional) Save to database here (Supabase, Firebase, MongoDB, etc.)
+      if (error) throw error
+
+      console.log("💰 Deposit logged:", log)
 
       return NextResponse.json({
         status: "success",
-        message: "Deposit recorded successfully",
+        message: "Deposit saved to Supabase",
         data: log,
       })
     }
 
     return NextResponse.json({
       status: "ignored",
-      message: "Event type not handled",
+      message: "Event not handled",
     })
   } catch (err: any) {
     console.error("Helio webhook error:", err)
