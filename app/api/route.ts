@@ -25,9 +25,6 @@ export async function POST(req: NextRequest) {
     const walletId = "68d51417b75b14c25b97d4c8"
     const solCurrencyId = "6340313846e4f91b8abc5195" // SOL currency ID
 
-    // Convert SOL amount to base units (1 SOL = 1,000,000,000 base units - 9 decimals)
-    const priceInBaseUnits = Math.round(Number(amount) * 1_000_000_000).toString()
-
     // Create charge via Helio API - PRODUCTION
     const res = await fetch(
       `https://api.hel.io/v1/charge/api-key?apiKey=${publicKey}`,
@@ -39,7 +36,8 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           name: `Sirens Fortune Deposit - ${amount} SOL`,
-          price: priceInBaseUnits,
+          description: "Deposit to Sirens Fortune account",
+          price: amount.toString(),
           pricingCurrency: solCurrencyId,
           template: "OTHER",
           features: {},
