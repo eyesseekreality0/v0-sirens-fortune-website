@@ -15,10 +15,9 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // Create a paylink dynamically
         name: `Deposit $${amount}`,
         amount: amount.toString(),
-        currency: "usd", // or sol/USDC depending on your Helio wallet
+        currency: "usd", // or "sol" / "usdc"
         metadata: { purpose: "user deposit" },
       }),
     })
