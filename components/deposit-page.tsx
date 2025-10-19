@@ -7,19 +7,19 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { CreditCard, ArrowLeft } from "lucide-react"
 import { useState } from "react"
+import { DepositWidget } from "@/components/deposit-widget"
 
 export function DepositPage() {
+  const [showDepositWidget, setShowDepositWidget] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  const handleHelioDeposit = () => {
+    setShowDepositWidget(true)
+  }
 
   const handleLinkDeposit = () => {
     setIsLoading(true)
     window.open("https://sirenspay.vercel.app/api/deposit.js", "_blank")
-    setTimeout(() => setIsLoading(false), 1000)
-  }
-
-  const handleHelioDeposit = () => {
-    setIsLoading(true)
-    window.open("/helio-checkout", "_blank")
     setTimeout(() => setIsLoading(false), 1000)
   }
 
@@ -81,7 +81,7 @@ export function DepositPage() {
                 </div>
               </button>
 
-              {/* Helio Card Option */}
+              {/* Helio Deposit Option */}
               <button
                 onClick={handleHelioDeposit}
                 disabled={isLoading}
@@ -103,6 +103,9 @@ export function DepositPage() {
       </main>
 
       <Footer />
+
+      {/* Deposit Widget Modal */}
+      <DepositWidget open={showDepositWidget} onOpenChange={setShowDepositWidget} />
     </div>
   )
 }
