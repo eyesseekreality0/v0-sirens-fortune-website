@@ -41,10 +41,10 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
 
       const data = await res.json()
 
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
+      if (data.pageUrl) {
+        window.location.href = data.pageUrl
       } else {
-        setError(data.error || "Failed to create deposit")
+        setError(data.error || "Failed to create payment")
         setIsProcessing(false)
       }
     } catch (err) {
