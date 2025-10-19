@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
     const walletId = "68d51417b75b14c25b97d4c8"
     const solCurrencyId = "6340313846e4f91b8abc5195" // SOL currency ID
 
+    // Convert amount to SOL base units (1 SOL = 1,000,000,000 base units - 9 decimals)
+    const priceInBaseUnits = Math.round(Number(amount) * 1_000_000_000).toString()
+
     // Create charge via Helio API - PRODUCTION
     const res = await fetch(
       `https://api.hel.io/v1/charge/api-key?apiKey=${publicKey}`,
@@ -36,8 +39,8 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           name: `Sirens Fortune Deposit - ${amount} SOL`,
-          description: "Deposit to Sirens Fortune account",
-          price: amount.toString(),
+          description: "Deposit to Sirens Fortune gaming account",
+          price: priceInBaseUnits,
           pricingCurrency: solCurrencyId,
           template: "OTHER",
           features: {},
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       console.error("[Helio] API error:", data)
       return NextResponse.json(
-        { error: data.message || "Failed to create charge" },
+        { error: data.message || data.error || "Failed to create charge" },
         { status: res.status }
       )
     }
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
     // Return the charge page URL
     return NextResponse.json({
       chargeId: data.id,
-      pageUrl: data.pageUrl,
+      pageUrl: data.pageUrl || data.url,
     })
   } catch (err) {
     console.error("[Helio] Server error:", err)
