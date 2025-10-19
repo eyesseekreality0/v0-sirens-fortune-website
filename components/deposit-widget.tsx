@@ -1,25 +1,10 @@
 "use client"
 
-import { useState, useRef, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { useState, useRef, useEffect } from "react"
+import { X } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import Script from "next/script"
-
-const PRESET_AMOUNTS = [5, 10, 15, 25, 50, 100]
-
-// Map amounts to their paylink IDs
-const PAYLINK_MAP: Record<number, string> = {
-  5: "68f2905e85c82a99dc39eb20",
-  10: "68ef6f7d89c8017dde33644f",
-  15: "68ef6c937967b9161b5ecb9e",
-  25: "68f47572dd8fc3e1076094d7",
-  50: "68f475b64f8b7a6ca16062e0",
-  100: "68f475e866ef198625487887",
-}
-
-// Fallback paylink for custom/combined amounts
-const FALLBACK_PAYLINK = "68f47622c9daf9bc20b39af1"
 
 interface DepositWidgetProps {
   open: boolean
@@ -27,61 +12,46 @@ interface DepositWidgetProps {
 }
 
 export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
-  const [selectedAmounts, setSelectedAmounts] = useState<number[]>([])
+  const [amount, setAmount] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState("")
   const [scriptReady, setScriptReady] = useState(false)
-  const [error, setError] = useState<string>("")
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Reset when closed
   useEffect(() => {
-    // Reset when dialog closes
     if (!open) {
-      setSelectedAmounts([])
+      setAmount("")
       setIsProcessing(false)
       setError("")
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ""
-      }
+      if (containerRef.current) containerRef.current.innerHTML = ""
     }
   }, [open])
 
+  // Poll for helio script when open
   useEffect(() => {
-    // Check if script loaded - runs whenever dialog opens
-    if (open) {
-      const checkScript = setInterval(() => {
-        if (typeof window !== 'undefined' && window.helioCheckout) {
-          setScriptReady(true)
-          clearInterval(checkScript)
-        }
-      }, 100)
-
-      return () => clearInterval(checkScript)
-    }
+    if (!open) return
+    const id = setInterval(() => {
+      if (typeof window !== "undefined" && (window as any).helioCheckout) {
+        setScriptReady(true)
+        clearInterval(id)
+      }
+    }, 120)
+    return () => clearInterval(id)
   }, [open])
 
-  const addAmount = (amount: number) => {
-    setSelectedAmounts([...selectedAmounts, amount])
-  }
-
-  const removeAmount = (index: number) => {
-    setSelectedAmounts(selectedAmounts.filter((_, i) => i !== index))
-  }
-
-  const totalAmount = selectedAmounts.reduce((sum, amount) => sum + amount, 0)
-
-  const handleCheckout = () => {
-    if (totalAmount === 0) {
-      setError("Please select an amount")
+  const startCheckout = () => {
+    const n = parseFloat(amount)
+    if (!n || n <= 0) {
+      setError("Please enter a valid amount")
       return
     }
-
-    if (!window.helioCheckout) {
-      setError("Payment system not ready. Please refresh and try again.")
-      return
-    }
-
     if (!containerRef.current) {
       setError("Payment container not found")
+      return
+    }
+    if (typeof window === "undefined" || !(window as any).helioCheckout) {
+      setError("Payment system not ready. Refresh and try again.")
       return
     }
 
@@ -89,169 +59,123 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
       setError("")
       setIsProcessing(true)
       containerRef.current.innerHTML = ""
-      
-      // Check if all selected amounts are the same
-      const uniqueAmounts = [...new Set(selectedAmounts)]
-      let paylinkId: string
-      
-      if (uniqueAmounts.length === 1) {
-        // All amounts are the same, use the specific paylink
-        paylinkId = PAYLINK_MAP[uniqueAmounts[0]] || FALLBACK_PAYLINK
-      } else {
-        // Mixed amounts, use fallback paylink
-        paylinkId = FALLBACK_PAYLINK
-      }
-      
-      if (!paylinkId) {
-        setError("Payment link not configured for this amount")
-        setIsProcessing(false)
-        return
-      }
-      
-      window.helioCheckout(containerRef.current, {
-        paylinkId: paylinkId,
+
+      ;(window as any).helioCheckout(containerRef.current, {
+        paylinkId: "68f4797ca6507e2626af2587", // your dynamic Helio paylink
         theme: { themeMode: "dark" },
         primaryColor: "#abff09",
         neutralColor: "#8200b7",
-        amount: totalAmount.toString(),
+        amount: n.toString(),
       })
     } catch (err) {
-      console.error("Checkout error:", err)
-      setError("Failed to initialize checkout")
+      console.error("Helio init error:", err)
+      setError("Failed to start checkout. Try refreshing.")
       setIsProcessing(false)
     }
   }
 
   return (
     <>
+      {/* Helio embed script */}
       <Script
         src="https://embed.hel.io/assets/index-v1.js"
         strategy="lazyOnload"
-        onLoad={() => {
-          console.log("Helio script loaded")
-          setScriptReady(true)
-        }}
+        onLoad={() => setScriptReady(true)}
         onError={(e) => {
-          console.error("Failed to load Helio script:", e)
+          console.error("Helio script failed to load", e)
+          setError("Payment script failed to load.")
         }}
       />
 
+      {/* Accessible dialog wrapper (keeps your existing Dialog component) */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md bg-card/95 backdrop-blur-md border-2 border-primary/30 p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Deposit Widget</DialogTitle>
-          {/* Show amount selector when Helio is not active */}
-          {!isProcessing ? (
-            <div className="p-6 space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold colorful-text font-serif mb-2">
-                  Choose Deposit Amount
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Select one or more amounts. You can choose the same amount multiple times.
-                </p>
-              </div>
+        {/* Modal backdrop + animated content */}
+        <div
+          aria-hidden={!open}
+          className={`fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6 pointer-events-none`}
+        >
+          {/* BACKDROP */}
+          <div
+            onClick={() => onOpenChange(false)}
+            className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+          />
 
-              {/* Preset Amounts Grid */}
-              <div className="grid grid-cols-3 gap-3">
-                {PRESET_AMOUNTS.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => addAmount(amount)}
-                    className="py-4 px-2 bg-gradient-to-br from-[var(--button-primary-from)] via-[var(--button-primary-via)] to-[var(--button-primary-to)] hover:from-[var(--button-primary-hover-from)] hover:via-[var(--button-primary-hover-via)] hover:to-[var(--button-primary-hover-to)] border-0 rounded-xl font-bold text-primary-foreground transition-all duration-200 transform hover:scale-105 shadow-lg text-sm"
-                  >
-                    +${amount}
-                  </button>
-                ))}
-              </div>
+          {/* DIALOG CONTENT - uses your DialogContent for layout but adds animation classes */}
+          <DialogContent
+            className={`relative pointer-events-auto w-full max-w-md transform transition-all duration-300 rounded-2xl overflow-hidden
+              ${open ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-95 opacity-0"}
+              bg-card/90 backdrop-blur-md border-2 border-accent/30 p-0 shadow-2xl`}
+          >
+            <DialogTitle className="sr-only">Deposit Widget</DialogTitle>
 
-              {/* Selected Amounts Display */}
-              <div className="p-4 bg-card/60 border border-primary/20 rounded-xl">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm text-muted-foreground font-semibold">Selected:</p>
-                  {selectedAmounts.length > 0 && (
-                    <button
-                      onClick={() => setSelectedAmounts([])}
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                    >
-                      <X className="w-3 h-3" />
-                      Clear All
-                    </button>
-                  )}
+            {/* --- Step 1: Amount input --- */}
+            {!isProcessing ? (
+              <div className="p-8 space-y-8">
+                <div className="text-center">
+                  <h2 className="text-3xl sm:text-4xl font-black colorful-text font-serif mb-2">
+                    Deposit with Helio
+                  </h2>
+                  <p className="text-foreground/80 text-sm sm:text-base leading-relaxed">
+                    Enter the amount you’d like to deposit. Pay securely with card or crypto.
+                  </p>
                 </div>
 
-                {selectedAmounts.length === 0 ? (
-                  <p className="text-center text-muted-foreground text-sm">No amounts selected</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedAmounts.map((amount, index) => (
-                      <div
-                        key={index}
-                        className="inline-flex items-center gap-2 bg-primary/20 border border-primary/40 rounded-full px-3 py-1"
-                      >
-                        <span className="font-semibold text-sm">${amount}</span>
-                        <button
-                          onClick={() => removeAmount(index)}
-                          className="hover:text-accent transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                <div className="flex items-center justify-center">
+                  <div className="flex items-center gap-2 bg-card/70 border border-accent/40 rounded-2xl px-6 py-4 shadow-lg w-full">
+                    <span className="text-2xl font-bold text-accent">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="flex-1 bg-transparent text-3xl font-black text-primary-foreground placeholder:text-muted-foreground focus:outline-none font-serif"
+                      aria-label="Deposit amount in USD"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-destructive/20 border border-destructive/40 rounded-lg text-center">
+                    <p className="text-sm text-destructive">{error}</p>
                   </div>
                 )}
-              </div>
 
-              {/* Total Amount */}
-              <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30 rounded-xl">
-                <p className="text-sm text-muted-foreground mb-1">Total</p>
-                <p className="text-4xl font-black colorful-text font-serif">
-                  ${totalAmount.toFixed(2)}
-                </p>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="p-3 bg-destructive/20 border border-destructive/40 rounded-lg">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-
-              {/* Checkout Button */}
-              <Button
-                onClick={handleCheckout}
-                disabled={totalAmount === 0}
-                className="w-full py-4 px-6 bg-gradient-to-br from-[var(--button-secondary-from)] via-[var(--button-secondary-via)] to-[var(--button-secondary-to)] hover:from-[var(--button-secondary-hover-from)] hover:via-[var(--button-secondary-hover-via)] hover:to-[var(--button-secondary-hover-to)] text-primary-foreground font-bold text-lg rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 shadow-lg hover:shadow-xl"
-              >
-                Continue to Payment
-              </Button>
-            </div>
-          ) : (
-            /* Helio Checkout Container */
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Deposit Amount</p>
-                  <p className="text-2xl font-bold colorful-text font-serif">${totalAmount.toFixed(2)}</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsProcessing(false)
-                    setError("")
-                    if (containerRef.current) containerRef.current.innerHTML = ""
-                  }}
-                  className="p-2 hover:bg-card rounded-lg transition-colors"
+                <Button
+                  onClick={startCheckout}
+                  disabled={!scriptReady || !amount}
+                  className="w-full py-4 px-6 text-lg font-bold rounded-2xl magical-button animated-button-colors bg-gradient-to-br from-[var(--button-secondary-from)] via-[var(--button-secondary-via)] to-[var(--button-secondary-to)] hover:from-[var(--button-secondary-hover-from)] hover:via-[var(--button-secondary-hover-via)] hover:to-[var(--button-secondary-hover-to)] text-primary-foreground shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  Continue to Payment
+                </Button>
               </div>
-              <div 
-                ref={containerRef}
-                id="helioCheckoutContainer" 
-                className="min-h-[500px]"
-              />
-            </div>
-          )}
-        </DialogContent>
+            ) : (
+              /* --- Step 2: Helio embed container (checkout) --- */
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Deposit Amount</p>
+                    <p className="text-2xl font-bold colorful-text font-serif">${parseFloat(amount).toFixed(2)}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsProcessing(false)
+                      setError("")
+                      if (containerRef.current) containerRef.current.innerHTML = ""
+                    }}
+                    className="p-2 hover:bg-card rounded-lg transition-colors"
+                    aria-label="Close checkout"
+                  >
+                    <X className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                </div>
+
+                <div ref={containerRef} className="min-h-[480px]" />
+              </div>
+            )}
+          </DialogContent>
+        </div>
       </Dialog>
     </>
   )
