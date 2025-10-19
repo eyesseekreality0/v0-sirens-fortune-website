@@ -14,6 +14,7 @@ export function DepositPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleHelioDeposit = () => setShowDepositWidget(true)
+  
   const handleLinkDeposit = () => {
     setIsLoading(true)
     window.open("https://sirenspay.vercel.app/api/deposit.js", "_blank")
