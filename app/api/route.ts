@@ -11,26 +11,49 @@ export async function POST(req: NextRequest) {
 
     const secretKey = process.env.HELIO_API_KEY
     const publicKey = process.env.HELIO_PUBLIC_KEY
+    const walletId = process.env.HELIO_WALLET_ID
+    const currencyId = process.env.HELIO_CURRENCY_ID
+    const environment = process.env.HELIO_ENV || "production"
 
-    if (!secretKey || !publicKey) {
-      console.error("[Helio] Missing API keys")
+    // Validation
+    if (!secretKey || !publicKey || !walletId || !currencyId) {
+      console.error("[Helio] Missing required env variables")
       return NextResponse.json(
-        { error: "Helio API keys not configured" },
+        { error: "Helio configuration incomplete" },
         { status: 500 }
       )
     }
 
+    // Determine API endpoint based on environment
+    const baseUrl = environment === "testnet" ? "https://api.dev.hel.io" : "https://api.hel.io"
+
+    // Convert USD amount to USDC base units (1 USDC = 1,000,000 base units)
+    const priceInBaseUnits = Math.round(Number(amount) * 1_000_000).toString()
+
     // Create charge via Helio API
-    const res = await fetch(`https://api.hel.io/v1/charge/api-key?apiKey=${publicKey}`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${secretKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: amount.toString(),
-      }),
-    })
+    const res = await fetch(
+      `${baseUrl}/v1/charge/api-key?apiKey=${publicKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: `Sirens Fortune Deposit - $${amount}`,
+          price: priceInBaseUnits,
+          pricingCurrency: currencyId,
+          template: "OTHER",
+          features: {},
+          recipients: [
+            {
+              walletId: walletId,
+              currencyId: currencyId,
+            },
+          ],
+        }),
+      }
+    )
 
     const data = await res.json()
 
