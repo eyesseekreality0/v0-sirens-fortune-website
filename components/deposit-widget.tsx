@@ -7,7 +7,19 @@ import { Button } from "@/components/ui/button"
 import Script from "next/script"
 
 const PRESET_AMOUNTS = [5, 10, 15, 25, 50, 100]
-const PAYLINK_ID = "68f2905e85c82a99dc39eb20"
+
+// Map amounts to their paylink IDs
+const PAYLINK_MAP: Record<number, string> = {
+  5: "68f2905e85c82a99dc39eb20",
+  10: "68ef6f7d89c8017dde33644f",
+  15: "68ef6c937967b9161b5ecb9e",
+  25: "68f47572dd8fc3e1076094d7",
+  50: "68f475b64f8b7a6ca16062e0",
+  100: "68f475e866ef198625487887",
+}
+
+// Fallback paylink for custom/combined amounts
+const FALLBACK_PAYLINK = "68f47622c9daf9bc20b39af1"
 
 interface DepositWidgetProps {
   open: boolean
@@ -76,8 +88,26 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
       setIsProcessing(true)
       containerRef.current.innerHTML = ""
       
+      // Check if all selected amounts are the same
+      const uniqueAmounts = [...new Set(selectedAmounts)]
+      let paylinkId: string
+      
+      if (uniqueAmounts.length === 1) {
+        // All amounts are the same, use the specific paylink
+        paylinkId = PAYLINK_MAP[uniqueAmounts[0]] || FALLBACK_PAYLINK
+      } else {
+        // Mixed amounts, use fallback paylink
+        paylinkId = FALLBACK_PAYLINK
+      }
+      
+      if (!paylinkId) {
+        setError("Payment link not configured for this amount")
+        setIsProcessing(false)
+        return
+      }
+      
       window.helioCheckout(containerRef.current, {
-        paylinkId: PAYLINK_ID,
+        paylinkId: paylinkId,
         theme: { themeMode: "dark" },
         primaryColor: "#abff09",
         neutralColor: "#8200b7",
@@ -106,6 +136,7 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md bg-card/95 backdrop-blur-md border-2 border-primary/30 p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="sr-only">Deposit Widget</DialogTitle>
           {/* Show amount selector when Helio is not active */}
           {!isProcessing ? (
             <div className="p-6 space-y-6">
