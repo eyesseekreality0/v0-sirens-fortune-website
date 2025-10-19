@@ -18,17 +18,32 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
   const [selectedAmounts, setSelectedAmounts] = useState<number[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [scriptReady, setScriptReady] = useState(false)
+  const [error, setError] = useState<string>("")
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Reset when dialog closes
     if (!open) {
       setSelectedAmounts([])
+      setIsProcessing(false)
+      setError("")
       if (containerRef.current) {
         containerRef.current.innerHTML = ""
       }
     }
   }, [open])
+
+  useEffect(() => {
+    // Check if script loaded
+    const checkScript = setInterval(() => {
+      if (window.helioCheckout) {
+        setScriptReady(true)
+        clearInterval(checkScript)
+      }
+    }, 100)
+
+    return () => clearInterval(checkScript)
+  }, [])
 
   const addAmount = (amount: number) => {
     setSelectedAmounts([...selectedAmounts, amount])
@@ -41,12 +56,26 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
   const totalAmount = selectedAmounts.reduce((sum, amount) => sum + amount, 0)
 
   const handleCheckout = () => {
-    if (totalAmount === 0 || !scriptReady || !containerRef.current) return
+    if (totalAmount === 0) {
+      setError("Please select an amount")
+      return
+    }
 
-    setIsProcessing(true)
+    if (!window.helioCheckout) {
+      setError("Payment system not ready. Please refresh and try again.")
+      return
+    }
 
-    if (window.helioCheckout) {
+    if (!containerRef.current) {
+      setError("Payment container not found")
+      return
+    }
+
+    try {
+      setError("")
+      setIsProcessing(true)
       containerRef.current.innerHTML = ""
+      
       window.helioCheckout(containerRef.current, {
         paylinkId: PAYLINK_ID,
         theme: { themeMode: "dark" },
@@ -54,6 +83,10 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
         neutralColor: "#8200b7",
         amount: totalAmount.toString(),
       })
+    } catch (err) {
+      console.error("Checkout error:", err)
+      setError("Failed to initialize checkout")
+      setIsProcessing(false)
     }
   }
 
@@ -61,19 +94,20 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
     <>
       <Script
         src="https://embed.hel.io/assets/index-v1.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onReady={() => {
           setScriptReady(true)
         }}
         onError={(e) => {
           console.error("Failed to load Helio script:", e)
+          setError("Payment system failed to load")
         }}
       />
 
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md bg-card/95 backdrop-blur-md border-2 border-primary/30 p-0 overflow-hidden">
+        <DialogContent className="max-w-md bg-card/95 backdrop-blur-md border-2 border-primary/30 p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
           {/* Show amount selector when Helio is not active */}
-          {!isProcessing || totalAmount === 0 ? (
+          {!isProcessing ? (
             <div className="p-6 space-y-6">
               <div>
                 <h2 className="text-2xl font-bold colorful-text font-serif mb-2">
@@ -142,10 +176,17 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
                 </p>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 bg-destructive/20 border border-destructive/40 rounded-lg">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
               {/* Checkout Button */}
               <Button
                 onClick={handleCheckout}
-                disabled={totalAmount === 0 || !scriptReady}
+                disabled={totalAmount === 0}
                 className="w-full py-4 px-6 bg-gradient-to-br from-[var(--button-secondary-from)] via-[var(--button-secondary-via)] to-[var(--button-secondary-to)] hover:from-[var(--button-secondary-hover-from)] hover:via-[var(--button-secondary-hover-via)] hover:to-[var(--button-secondary-hover-to)] text-primary-foreground font-bold text-lg rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 shadow-lg hover:shadow-xl"
               >
                 Continue to Payment
@@ -162,6 +203,7 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
                 <button
                   onClick={() => {
                     setIsProcessing(false)
+                    setError("")
                     if (containerRef.current) containerRef.current.innerHTML = ""
                   }}
                   className="p-2 hover:bg-card rounded-lg transition-colors"
