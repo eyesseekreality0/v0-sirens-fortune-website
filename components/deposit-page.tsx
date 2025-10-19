@@ -1,15 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import { Navigation } from "@/components/navigation"
 import { OceanBackground } from "@/components/ocean-background"
 import { AnimatedFish } from "@/components/animated-fish"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { CreditCard, ArrowLeft } from "lucide-react"
-import { useState } from "react"
 import { DepositWidget } from "@/components/deposit-widget"
 
-export function DepositPage() {
+export default function DepositPage() {
   const [showDepositWidget, setShowDepositWidget] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -31,6 +31,7 @@ export function DepositPage() {
 
       <main className="relative z-10 pt-24 md:pt-32 pb-20 px-4">
         <div className="container mx-auto max-w-2xl">
+          {/* Back Button */}
           <div className="mb-8">
             <Button
               onClick={() => window.history.back()}
@@ -43,6 +44,7 @@ export function DepositPage() {
             </Button>
           </div>
 
+          {/* Title */}
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-center mb-3 colorful-text font-serif">
               Make a Deposit
@@ -51,8 +53,9 @@ export function DepositPage() {
               Choose your preferred deposit method
             </p>
 
+            {/* Deposit Options */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Link Deposit Option */}
+              {/* Link Deposit */}
               <button
                 onClick={handleLinkDeposit}
                 disabled={isLoading}
@@ -81,7 +84,7 @@ export function DepositPage() {
                 </div>
               </button>
 
-              {/* Helio Deposit Option */}
+              {/* Helio Deposit */}
               <button
                 onClick={handleHelioDeposit}
                 disabled={isLoading}
@@ -104,7 +107,7 @@ export function DepositPage() {
 
       <Footer />
 
-      {/* Deposit Widget Modal */}
+      {/* Helio Deposit Modal */}
       <DepositWidget open={showDepositWidget} onOpenChange={setShowDepositWidget} />
     </div>
   )
