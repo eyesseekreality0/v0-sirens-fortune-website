@@ -6,15 +6,17 @@ import { OceanBackground } from "@/components/ocean-background"
 import { AnimatedFish } from "@/components/animated-fish"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { CreditCard, ArrowLeft } from "lucide-react"
+import { CreditCard, ArrowLeft, Zap } from "lucide-react"
 import { DepositWidget } from "./deposit-widget"
+import { LightningDepositModal } from "./lightning-deposit-modal"
 
 export function DepositPage() {
   const [showDepositWidget, setShowDepositWidget] = useState(false)
+  const [showLightning, setShowLightning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleHelioDeposit = () => setShowDepositWidget(true)
-  
+
   const handleLinkDeposit = () => {
     setIsLoading(true)
     window.open("https://sirenspay.vercel.app/api/deposit.js", "_blank")
@@ -49,7 +51,7 @@ export function DepositPage() {
               Choose your preferred deposit method
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <button
                 onClick={handleLinkDeposit}
                 disabled={isLoading}
@@ -79,6 +81,19 @@ export function DepositPage() {
                   <p className="text-sm text-foreground/70 text-center">Pay with card or crypto</p>
                 </div>
               </button>
+
+              <button
+                onClick={() => setShowLightning(true)}
+                className="group relative p-8 rounded-2xl border-2 border-secondary/30 bg-card/70 backdrop-blur-md hover:border-secondary/60 hover:bg-card/90 transition-all duration-300 transform hover:scale-105"
+              >
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-secondary/20 to-accent/20 group-hover:from-secondary/30 group-hover:to-accent/30 transition-colors">
+                    <Zap className="w-8 h-8 text-secondary" />
+                  </div>
+                  <h3 className="text-2xl font-bold colorful-text font-serif">Bitcoin Lightning</h3>
+                  <p className="text-sm text-foreground/70 text-center">Instant crypto payment</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -87,6 +102,7 @@ export function DepositPage() {
       <Footer />
 
       <DepositWidget open={showDepositWidget} onOpenChange={setShowDepositWidget} />
+      <LightningDepositModal open={showLightning} onOpenChange={setShowLightning} />
     </div>
   )
 }
