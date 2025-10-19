@@ -4,34 +4,51 @@ export async function POST(req: NextRequest) {
   try {
     const { amount } = await req.json()
 
+    // Validation
     if (!amount || Number(amount) <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
     }
 
-    const res = await fetch("https://api.hel.io/v1/paylinks", {
+    const secretKey = process.env.HELIO_API_KEY
+    const publicKey = process.env.HELIO_PUBLIC_KEY
+
+    if (!secretKey || !publicKey) {
+      console.error("[Helio] Missing API keys")
+      return NextResponse.json(
+        { error: "Helio API keys not configured" },
+        { status: 500 }
+      )
+    }
+
+    // Create charge via Helio API
+    const res = await fetch(`https://api.hel.io/v1/charge/api-key?apiKey=${publicKey}`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.HELIO_SECRET_KEY}`,
+        "Authorization": `Bearer ${secretKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name: `Deposit $${amount}`,
         amount: amount.toString(),
-        currency: "usd", // or "sol" / "usdc"
-        metadata: { purpose: "user deposit" },
       }),
     })
 
     const data = await res.json()
 
     if (!res.ok) {
-      console.error("Helio API error:", data)
-      return NextResponse.json({ error: data.message || "Failed to create paylink" }, { status: res.status })
+      console.error("[Helio] API error:", data)
+      return NextResponse.json(
+        { error: data.message || "Failed to create charge" },
+        { status: res.status }
+      )
     }
 
-    return NextResponse.json({ checkoutUrl: data.checkoutUrl })
+    // Return the charge page URL
+    return NextResponse.json({
+      chargeId: data.id,
+      pageUrl: data.pageUrl,
+    })
   } catch (err) {
-    console.error("Server error:", err)
+    console.error("[Helio] Server error:", err)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
