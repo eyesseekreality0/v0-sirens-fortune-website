@@ -1,22 +1,19 @@
 "use client"
 
+import { useState } from "react"
 import { Navigation } from "@/components/navigation"
 import { OceanBackground } from "@/components/ocean-background"
 import { AnimatedFish } from "@/components/animated-fish"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { CreditCard, ArrowLeft } from "lucide-react"
-import { useState } from "react"
-import { DepositWidget } from "@/components/deposit-widget"
+import { DepositWidget } from "./deposit-widget"
 
 export function DepositPage() {
   const [showDepositWidget, setShowDepositWidget] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleHelioDeposit = () => {
-    setShowDepositWidget(true)
-  }
-
+  const handleHelioDeposit = () => setShowDepositWidget(true)
   const handleLinkDeposit = () => {
     setIsLoading(true)
     window.open("https://sirenspay.vercel.app/api/deposit.js", "_blank")
@@ -52,7 +49,6 @@ export function DepositPage() {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Link Deposit Option */}
               <button
                 onClick={handleLinkDeposit}
                 disabled={isLoading}
@@ -60,28 +56,15 @@ export function DepositPage() {
               >
                 <div className="flex flex-col items-center gap-4">
                   <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 group-hover:from-primary/30 group-hover:to-secondary/30 transition-colors">
-                    <svg
-                      className="w-8 h-8 text-primary"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                      />
+                    <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                   </div>
                   <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Link</h3>
-                  <p className="text-sm text-foreground/70 text-center">
-                    Card Deposit
-                  </p>
+                  <p className="text-sm text-foreground/70 text-center">Card Deposit</p>
                 </div>
               </button>
 
-              {/* Helio Deposit Option */}
               <button
                 onClick={handleHelioDeposit}
                 disabled={isLoading}
@@ -92,9 +75,7 @@ export function DepositPage() {
                     <CreditCard className="w-8 h-8 text-accent" />
                   </div>
                   <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Helio</h3>
-                  <p className="text-sm text-foreground/70 text-center">
-                    Pay with card or crypto
-                  </p>
+                  <p className="text-sm text-foreground/70 text-center">Pay with card or crypto</p>
                 </div>
               </button>
             </div>
@@ -104,7 +85,6 @@ export function DepositPage() {
 
       <Footer />
 
-      {/* Deposit Widget Modal */}
       <DepositWidget open={showDepositWidget} onOpenChange={setShowDepositWidget} />
     </div>
   )
