@@ -10,11 +10,10 @@ export async function POST(req: NextRequest) {
     }
 
     const speedApiKey = process.env.SPEED_API_KEY
-    const lightningAddress = process.env.LIGHTNING_ADDRESS
     const environment = process.env.SPEED_ENV || "testnet"
 
-    if (!speedApiKey || !lightningAddress) {
-      console.error("[Lightning] Missing required env variables")
+    if (!speedApiKey) {
+      console.error("[Lightning] Missing SPEED_API_KEY")
       return NextResponse.json(
         { error: "Lightning configuration incomplete" },
         { status: 500 }
@@ -39,7 +38,6 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         msats: msats,
         description: `Sirens Fortune Deposit - ${amount} BTC`,
-        recipientAddress: lightningAddress,
       }),
     })
 
