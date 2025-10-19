@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
 
     const secretKey = process.env.HELIO_API_KEY
     const publicKey = process.env.HELIO_PUBLIC_KEY
-    const environment = process.env.HELIO_ENV || "production"
 
     // Validation
     if (!secretKey || !publicKey) {
@@ -22,9 +21,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Determine API endpoint based on environment
-    const baseUrl = environment === "testnet" ? "https://api.dev.hel.io" : "https://api.hel.io"
-
     // Your Helio wallet details
     const walletId = "68d51417b75b14c25b97d4c8"
     const solCurrencyId = "6340313846e4f91b8abc5195" // SOL currency ID
@@ -32,9 +28,9 @@ export async function POST(req: NextRequest) {
     // Convert SOL amount to base units (1 SOL = 1,000,000,000 base units - 9 decimals)
     const priceInBaseUnits = Math.round(Number(amount) * 1_000_000_000).toString()
 
-    // Create charge via Helio API
+    // Create charge via Helio API - PRODUCTION
     const res = await fetch(
-      `${baseUrl}/v1/charge/api-key?apiKey=${publicKey}`,
+      `https://api.hel.io/v1/charge/api-key?apiKey=${publicKey}`,
       {
         method: "POST",
         headers: {
