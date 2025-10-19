@@ -12,16 +12,34 @@ interface LightningDepositModalProps {
 }
 
 export function LightningDepositModal({ open, onOpenChange }: LightningDepositModalProps) {
-  const [amount, setAmount] = useState("")
+  const [usdAmount, setUsdAmount] = useState("")
+  const [btcAmount, setBtcAmount] = useState("")
   const [lightningInvoice, setLightningInvoice] = useState("")
   const [error, setError] = useState("")
   const [showQR, setShowQR] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [btcPrice, setBtcPrice] = useState<number | null>(null)
+
+  // Fetch BTC price on mount
+  useEffect(() => {
+    const fetchBtcPrice = async () => {
+      try {
+        const res = await fetch("https://api.coindesk.com/v1/bpi/currentprice/USD.json")
+        const data = await res.json()
+        setBtcPrice(data.bpi.USD.rate_float)
+      } catch (err) {
+        console.error("Failed to fetch BTC price:", err)
+        setBtcPrice(45000) // fallback price
+      }
+    }
+    fetchBtcPrice()
+  }, [])
 
   useEffect(() => {
     if (!open) {
-      setAmount("")
+      setUsdAmount("")
+      setBtcAmount("")
       setLightningInvoice("")
       setError("")
       setShowQR(false)
@@ -30,9 +48,27 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     }
   }, [open])
 
+  // Convert USD to BTC
+  const handleUsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const usd = e.target.value
+    setUsdAmount(usd)
+    
+    if (usd && btcPrice) {
+      const btc = (parseFloat(usd) / btcPrice).toFixed(8)
+      setBtcAmount(btc)
+    } else {
+      setBtcAmount("")
+    }
+  }
+
   const handleGenerateQR = async () => {
-    if (!amount || Number(amount) <= 0) {
-      setError("Please enter a valid amount")
+    if (!usdAmount || Number(usdAmount) <= 0) {
+      setError("Please enter a valid USD amount")
+      return
+    }
+
+    if (!btcAmount) {
+      setError("Could not convert USD to BTC")
       return
     }
 
@@ -43,7 +79,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
       const res = await fetch("/api/lightning", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount: btcAmount }),
       })
 
       const data = await res.json()
@@ -83,22 +119,38 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
 
           {!showQR ? (
             <>
-              <p className="text-sm text-foreground/70">Enter the amount in BTC you want to deposit</p>
-              <input
-                type="number"
-                min="0"
-                step="0.00000001"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full p-4 rounded-xl border border-primary/40 text-lg font-semibold bg-card/70 focus:outline-none focus:ring-2 focus:ring-accent"
-                placeholder="0.001 BTC"
-              />
+              <p className="text-sm text-foreground/70">Enter the USD amount you want to deposit</p>
+              
+              <div className="flex flex-col gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={usdAmount}
+                  onChange={handleUsdChange}
+                  className="w-full p-4 rounded-xl border border-primary/40 text-lg font-semibold bg-card/70 focus:outline-none focus:ring-2 focus:ring-accent"
+                  placeholder="Enter USD amount"
+                />
+                {btcPrice && (
+                  <p className="text-xs text-foreground/50">
+                    BTC Price: ${btcPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+
+              {btcAmount && (
+                <div className="bg-card/50 border border-primary/20 rounded-xl p-3">
+                  <p className="text-sm text-foreground/70">
+                    <span className="font-semibold">${usdAmount} USD</span> = <span className="font-semibold">{btcAmount} BTC</span>
+                  </p>
+                </div>
+              )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button
                 onClick={handleGenerateQR}
-                disabled={!amount || isLoading}
+                disabled={!usdAmount || isLoading}
                 className="w-full py-4 px-6 bg-gradient-to-br from-[var(--button-secondary-from)] via-[var(--button-secondary-via)] to-[var(--button-secondary-to)] hover:from-[var(--button-secondary-hover-from)] hover:via-[var(--button-secondary-hover-via)] hover:to-[var(--button-secondary-hover-to)] text-primary-foreground font-bold text-lg rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Generating Invoice..." : "Generate QR Code"}
@@ -107,7 +159,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
           ) : (
             <>
               <div className="flex flex-col items-center gap-4">
-                <p className="text-sm text-foreground/70 text-center">Scan with your Lightning wallet to pay {amount} BTC</p>
+                <p className="text-sm text-foreground/70 text-center">Scan with your Lightning wallet to pay {btcAmount} BTC (${usdAmount} USD)</p>
                 <div className="bg-white p-4 rounded-xl shadow-lg">
                   <QRCode
                     value={lightningInvoice}
