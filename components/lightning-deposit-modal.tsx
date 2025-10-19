@@ -21,16 +21,17 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
   const [copied, setCopied] = useState(false)
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
 
-  // Fetch BTC price on mount
+  // Fetch BTC price from Speed API on mount
   useEffect(() => {
     const fetchBtcPrice = async () => {
       try {
-        const res = await fetch("https://api.coindesk.com/v1/bpi/currentprice/USD.json")
+        const res = await fetch("https://api.tryspeed.com/api/v0/rates?from=BTC&to=USD")
         const data = await res.json()
-        setBtcPrice(data.bpi.USD.rate_float)
+        if (data.rate) {
+          setBtcPrice(data.rate)
+        }
       } catch (err) {
         console.error("Failed to fetch BTC price:", err)
-        setBtcPrice(45000) // fallback price
       }
     }
     fetchBtcPrice()
