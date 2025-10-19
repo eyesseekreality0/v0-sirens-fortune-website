@@ -20,18 +20,27 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
   const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
+  const [loadingPrice, setLoadingPrice] = useState(true)
 
-  // Fetch BTC price from Speed API on mount
+  // Fetch BTC price on mount
   useEffect(() => {
     const fetchBtcPrice = async () => {
       try {
+        setLoadingPrice(true)
         const res = await fetch("https://api.tryspeed.com/api/v0/rates?from=BTC&to=USD")
         const data = await res.json()
         if (data.rate) {
           setBtcPrice(data.rate)
+        } else {
+          // Fallback to a reasonable estimate if API fails
+          setBtcPrice(50000)
         }
       } catch (err) {
         console.error("Failed to fetch BTC price:", err)
+        // Fallback price
+        setBtcPrice(50000)
+      } finally {
+        setLoadingPrice(false)
       }
     }
     fetchBtcPrice()
@@ -85,24 +94,30 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
 
       const data = await res.json()
 
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate Lightning invoice")
+      }
+
       if (data.invoice) {
         setLightningInvoice(data.invoice)
         setShowQR(true)
       } else {
-        setError(data.error || "Failed to generate Lightning invoice")
+        setError("No invoice returned from server")
       }
     } catch (err) {
-      console.error(err)
-      setError("Server error. Try again later.")
+      console.error("Lightning invoice error:", err)
+      setError(err instanceof Error ? err.message : "Server error. Try again later.")
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleCopyInvoice = () => {
-    navigator.clipboard.writeText(lightningInvoice)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (lightningInvoice) {
+      navigator.clipboard.writeText(lightningInvoice)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   return (
@@ -122,6 +137,10 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
             <>
               <p className="text-sm text-foreground/70">Enter the USD amount you want to deposit</p>
               
+              {loadingPrice && (
+                <p className="text-xs text-foreground/50 animate-pulse">Loading BTC price...</p>
+              )}
+              
               <div className="flex flex-col gap-2">
                 <input
                   type="number"
@@ -129,10 +148,11 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
                   step="0.01"
                   value={usdAmount}
                   onChange={handleUsdChange}
-                  className="w-full p-4 rounded-xl border border-primary/40 text-lg font-semibold bg-card/70 focus:outline-none focus:ring-2 focus:ring-accent"
-                  placeholder="Enter USD amount"
+                  disabled={loadingPrice}
+                  className="w-full p-4 rounded-xl border border-primary/40 text-lg font-semibold bg-card/70 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+                  placeholder={loadingPrice ? "Loading..." : "Enter USD amount"}
                 />
-                {btcPrice && (
+                {btcPrice && !loadingPrice && (
                   <p className="text-xs text-foreground/50">
                     BTC Price: ${btcPrice.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                   </p>
@@ -151,7 +171,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
 
               <Button
                 onClick={handleGenerateQR}
-                disabled={!usdAmount || isLoading}
+                disabled={!usdAmount || isLoading || loadingPrice}
                 className="w-full py-4 px-6 bg-gradient-to-br from-[var(--button-secondary-from)] via-[var(--button-secondary-via)] to-[var(--button-secondary-to)] hover:from-[var(--button-secondary-hover-from)] hover:via-[var(--button-secondary-hover-via)] hover:to-[var(--button-secondary-hover-to)] text-primary-foreground font-bold text-lg rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Generating Invoice..." : "Generate QR Code"}
@@ -160,7 +180,9 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
           ) : (
             <>
               <div className="flex flex-col items-center gap-4">
-                <p className="text-sm text-foreground/70 text-center">Scan with your Lightning wallet to pay {btcAmount} BTC (${usdAmount} USD)</p>
+                <p className="text-sm text-foreground/70 text-center">
+                  Scan with your Lightning wallet to pay {btcAmount} BTC (${usdAmount} USD)
+                </p>
                 <div className="bg-white p-4 rounded-xl shadow-lg">
                   <QRCode
                     value={lightningInvoice}
