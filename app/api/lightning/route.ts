@@ -1,4 +1,3 @@
-// FILE 1: app/api/lightning/route.ts
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
@@ -10,7 +9,6 @@ export async function POST(req: NextRequest) {
     }
 
     const speedApiKey = process.env.SPEED_API_KEY
-    const environment = process.env.SPEED_ENV || "testnet"
 
     if (!speedApiKey) {
       console.error("[Lightning] Missing SPEED_API_KEY")
@@ -20,9 +18,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const apiUrl = environment === "testnet" 
-      ? "https://testnet.tryspeed.com/api/v0/invoices" 
-      : "https://app.tryspeed.com/api/v0/invoices"
+    // PRODUCTION - api.tryspeed.com
+    const apiUrl = "https://api.tryspeed.com/api/v0/invoices"
 
     const satoshis = Math.round(Number(amount) * 100_000_000)
     const msats = satoshis * 1000
