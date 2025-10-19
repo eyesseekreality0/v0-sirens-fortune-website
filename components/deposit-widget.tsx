@@ -46,16 +46,18 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
   }, [open])
 
   useEffect(() => {
-    // Check if script loaded
-    const checkScript = setInterval(() => {
-      if (window.helioCheckout) {
-        setScriptReady(true)
-        clearInterval(checkScript)
-      }
-    }, 100)
+    // Check if script loaded - runs whenever dialog opens
+    if (open) {
+      const checkScript = setInterval(() => {
+        if (typeof window !== 'undefined' && window.helioCheckout) {
+          setScriptReady(true)
+          clearInterval(checkScript)
+        }
+      }, 100)
 
-    return () => clearInterval(checkScript)
-  }, [])
+      return () => clearInterval(checkScript)
+    }
+  }, [open])
 
   const addAmount = (amount: number) => {
     setSelectedAmounts([...selectedAmounts, amount])
@@ -124,13 +126,13 @@ export function DepositWidget({ open, onOpenChange }: DepositWidgetProps) {
     <>
       <Script
         src="https://embed.hel.io/assets/index-v1.js"
-        strategy="afterInteractive"
-        onReady={() => {
+        strategy="lazyOnload"
+        onLoad={() => {
+          console.log("Helio script loaded")
           setScriptReady(true)
         }}
         onError={(e) => {
           console.error("Failed to load Helio script:", e)
-          setError("Payment system failed to load")
         }}
       />
 
