@@ -11,12 +11,10 @@ export async function POST(req: NextRequest) {
 
     const secretKey = process.env.HELIO_API_KEY
     const publicKey = process.env.HELIO_PUBLIC_KEY
-    const walletId = process.env.HELIO_WALLET_ID
-    const currencyId = process.env.HELIO_CURRENCY_ID
     const environment = process.env.HELIO_ENV || "production"
 
     // Validation
-    if (!secretKey || !publicKey || !walletId || !currencyId) {
+    if (!secretKey || !publicKey) {
       console.error("[Helio] Missing required env variables")
       return NextResponse.json(
         { error: "Helio configuration incomplete" },
@@ -27,8 +25,12 @@ export async function POST(req: NextRequest) {
     // Determine API endpoint based on environment
     const baseUrl = environment === "testnet" ? "https://api.dev.hel.io" : "https://api.hel.io"
 
-    // Convert USD amount to USDC base units (1 USDC = 1,000,000 base units)
-    const priceInBaseUnits = Math.round(Number(amount) * 1_000_000).toString()
+    // Your Helio wallet details
+    const walletId = "68d51417b75b14c25b97d4c8"
+    const solCurrencyId = "6340313846e4f91b8abc5195" // SOL currency ID
+
+    // Convert SOL amount to base units (1 SOL = 1,000,000,000 base units - 9 decimals)
+    const priceInBaseUnits = Math.round(Number(amount) * 1_000_000_000).toString()
 
     // Create charge via Helio API
     const res = await fetch(
@@ -40,15 +42,15 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: `Sirens Fortune Deposit - $${amount}`,
+          name: `Sirens Fortune Deposit - ${amount} SOL`,
           price: priceInBaseUnits,
-          pricingCurrency: currencyId,
+          pricingCurrency: solCurrencyId,
           template: "OTHER",
           features: {},
           recipients: [
             {
               walletId: walletId,
-              currencyId: currencyId,
+              currencyId: solCurrencyId,
             },
           ],
         }),
