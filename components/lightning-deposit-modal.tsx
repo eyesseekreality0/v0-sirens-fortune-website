@@ -42,47 +42,44 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     setBtcPrice(null);
   };
 
-  // ---- ONLY /api/create-invoice here ----
   const handleGenerateQR = async () => {
-    const usd = Number(usdAmount);
-    if (!usd || usd <= 0) {
-      setError("Please enter a valid USD amount");
-      return;
+  const usd = Number(usdAmount);
+  if (!usd || usd <= 0) {
+    setError("Please enter a valid USD amount");
+    return;
+  }
+
+  setError("");
+  setIsLoading(true);
+
+  try {
+    const res = await fetch("/api/create-invoice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amountUsd: usd,
+        // optionally pass a customer to attach:
+        // customer: { name: "Jane Doe", email: "jane@example.com" }
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data?.hostedUrl) {
+      throw new Error(data?.error || "Failed to create invoice");
     }
 
-    setError("");
-    setIsLoading(true);
+    // Show a QR of the hosted invoice URL (Speed’s page handles Lightning)
+    setLightningInvoice(data.hostedUrl);
+    setBtcAmount("");       // we’re not showing BTC math anymore
+    setBtcPrice(null);
+    setShowQR(true);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Server error");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    try {
-      const res = await fetch("/api/create-invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amountUsd: usd,
-          userId: "anonymous-user",
-        }),
-      });
-
-      // Prevent "Unexpected end of JSON" if server returns HTML or empty
-      const contentType = res.headers.get("content-type") || "";
-      const isJson = contentType.includes("application/json");
-      const data = isJson ? await res.json() : { error: await res.text() };
-
-      if (!res.ok || !data?.paymentRequest) {
-        throw new Error(data?.error || "Failed to generate Lightning invoice");
-      }
-
-      setLightningInvoice(String(data.paymentRequest));
-      setBtcAmount(String(data.btcAmount ?? ""));
-      setBtcPrice(typeof data.btcPrice === "number" ? data.btcPrice : null);
-      setShowQR(true);
-    } catch (err) {
-      console.error("Invoice creation error:", err);
-      setError(err instanceof Error ? err.message : "Server error. Try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCopyInvoice = () => {
     if (lightningInvoice) {
