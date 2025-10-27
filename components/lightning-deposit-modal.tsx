@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { X, Copy, Check, ExternalLink } from "lucide-react"
+import { X, Copy, Check, ExternalLink, Timer } from "lucide-react"
 import QRCode from "qrcode.react"
 
 interface LightningDepositModalProps {
@@ -15,6 +15,8 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
   const [usdAmount, setUsdAmount] = useState("")
   const [btcAmount, setBtcAmount] = useState("")
   const [lightningInvoice, setLightningInvoice] = useState("")
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [showQR, setShowQR] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -27,17 +29,13 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     const fetchBtcPrice = async () => {
       try {
         setLoadingPrice(true)
-        const res = await fetch("https://api.tryspeed.com/v1/rates?from=BTC&to=USD", {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
+        const res = await fetch("/api/tryspeed/rates?from=BTC&to=USD")
         const data = await res.json()
 
-        if (data.rate) {
+        if (res.ok && typeof data.rate === "number") {
           setBtcPrice(data.rate)
         } else {
-          console.warn("BTC price not found, using fallback 50000")
+          console.warn("BTC price not found in response", data)
           setBtcPrice(50000)
         }
       } catch (err) {
@@ -48,7 +46,9 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
       }
     }
 
-    if (open) fetchBtcPrice()
+    if (open) {
+      fetchBtcPrice()
+    }
   }, [open])
 
   // ✅ Reset modal state on close
@@ -57,6 +57,8 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
       setUsdAmount("")
       setBtcAmount("")
       setLightningInvoice("")
+      setInvoiceId(null)
+      setExpiresAt(null)
       setError("")
       setShowQR(false)
       setCopied(false)
@@ -74,6 +76,10 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     } else {
       setBtcAmount("")
     }
+    setShowQR(false)
+    setLightningInvoice("")
+    setInvoiceId(null)
+    setExpiresAt(null)
   }
 
   // ✅ Generate Lightning invoice via Speed
@@ -91,22 +97,34 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     setIsLoading(true)
 
     try {
-      const res = await fetch("/api/speed/create-invoice", {
+      const res = await fetch("/api/tryspeed/invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amountUsd: parseFloat(usdAmount),
-          userId: "anonymous-user" // TODO: replace with real user id if available
+          btcAmount: btcAmount ? Number(btcAmount) : undefined,
         }),
       })
 
       const data = await res.json()
 
-      if (!res.ok || !data.paymentRequest) {
+      if (!res.ok || !data.invoice) {
         throw new Error(data.error || "Failed to generate Lightning invoice")
       }
 
-      setLightningInvoice(data.paymentRequest)
+      setLightningInvoice(data.invoice)
+      setInvoiceId(data.invoiceId ?? null)
+      if (typeof data.btcAmount === "number") {
+        setBtcAmount(data.btcAmount.toFixed(8))
+      } else if (typeof data.btcAmount === "string") {
+        const parsed = Number(data.btcAmount)
+        if (!Number.isNaN(parsed)) {
+          setBtcAmount(parsed.toFixed(8))
+        }
+      }
+      if (typeof data.expiresAt === "string") {
+        setExpiresAt(data.expiresAt)
+      }
       setShowQR(true)
     } catch (err) {
       console.error("Invoice creation error:", err)
@@ -197,19 +215,28 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
                 <p className="text-sm text-foreground/70 text-center">
                   Scan with your Lightning wallet to pay {btcAmount} BTC (${usdAmount} USD)
                 </p>
-                <div className="bg-white p-4 rounded-xl shadow-lg">
+                <div className="bg-white p-4 rounded-xl shadow-glow animate-float-slow">
                   <QRCode value={lightningInvoice} size={256} level="H" includeMargin={true} />
                 </div>
               </div>
 
-              <div className="bg-card/50 border border-primary/20 rounded-xl p-4">
-                <p className="text-xs text-foreground/50 mb-2">Lightning Invoice:</p>
-                <div
-                  onClick={handleCopyInvoice}
-                  className="text-xs text-foreground/70 break-all cursor-pointer hover:text-foreground transition-colors p-2 bg-card/70 rounded border border-primary/20"
-                >
-                  {lightningInvoice.substring(0, 50)}...
+              <div className="bg-card/60 border border-primary/30 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs text-foreground/60 uppercase tracking-wider">
+                  <span>Lightning Invoice</span>
+                  {invoiceId && <span className="font-semibold text-foreground/80">#{invoiceId}</span>}
                 </div>
+                {expiresAt && (
+                  <div className="flex items-center gap-2 text-xs text-foreground/70">
+                    <Timer className="w-3 h-3" />
+                    <span>Expires: {new Date(expiresAt).toLocaleString()}</span>
+                  </div>
+                )}
+                <textarea
+                  readOnly
+                  onClick={handleCopyInvoice}
+                  className="w-full h-32 text-xs text-foreground/80 break-all cursor-pointer hover:text-foreground transition-colors p-3 bg-card/70 rounded-xl border border-primary/20 focus:outline-none"
+                  value={lightningInvoice}
+                />
               </div>
 
               <div className="flex flex-col gap-2">
