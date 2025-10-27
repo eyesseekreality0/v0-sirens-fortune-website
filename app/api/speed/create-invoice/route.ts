@@ -1,55 +1,57 @@
-import { NextRequest, NextResponse } from "next/server"
+// app/api/speed/create-invoice/route.ts
+import { NextRequest, NextResponse } from "next/server";
+
+// Force Node runtime so env + TLS work predictably
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { amountUsd, userId } = await req.json()
+    const { amountUsd, userId } = await req.json();
 
-    // Validate amount
-    if (!amountUsd || Number(amountUsd) <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
+    // Basic validation
+    const usd = Number(amountUsd);
+    if (!usd || usd <= 0) {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
-    const speedApiKey = process.env.SPEED_API_KEY
+    const speedApiKey = process.env.SPEED_API_KEY;
     if (!speedApiKey) {
-      console.error("[Speed Invoice] Missing SPEED_API_KEY")
-      return NextResponse.json(
-        { error: "Server misconfiguration: SPEED_API_KEY missing" },
-        { status: 500 }
-      )
+      console.error("[Speed] Missing SPEED_API_KEY");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
     }
 
-    // Step 1: Get current BTC/USD rate from Speed API
-    console.log(`[Speed Invoice] Fetching BTC price...`)
-    
-    const rateRes = await fetch("https://api.tryspeed.com/v1/rates?from=BTC&to=USD", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+    // 1) Get BTC/USD rate (SERVER-SIDE → not subject to CORS)
+    // If your Speed account requires auth for rates, we send the bearer token.
+    const rateRes = await fetch(
+      "https://api.tryspeed.com/v1/rates?from=BTC&to=USD",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${speedApiKey}`, // harmless if not required
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
+    );
 
     if (!rateRes.ok) {
-      console.error("[Speed Invoice] Failed to fetch BTC rate")
-      return NextResponse.json(
-        { error: "Failed to fetch current BTC rate" },
-        { status: 500 }
-      )
+      const text = await rateRes.text();
+      console.error("[Speed] Rate fetch failed:", text);
+      return NextResponse.json({ error: "Failed to fetch BTC rate" }, { status: 502 });
     }
 
-    const rateData = await rateRes.json()
-    const btcPrice = rateData.rate || 50000 // Fallback price
+    const rateData = await rateRes.json();
+    // Adjust if your response shape differs (e.g., { rate: 68000 })
+    const btcPrice = Number(rateData?.rate);
+    if (!btcPrice) {
+      return NextResponse.json({ error: "BTC rate missing in response" }, { status: 502 });
+    }
 
-    console.log(`[Speed Invoice] BTC price: $${btcPrice}`)
+    // 2) Convert USD → BTC → msats
+    const btcAmount = usd / btcPrice;
+    const msats = Math.round(btcAmount * 100_000_000_000); // 1 BTC = 100B msats
 
-    // Step 2: Convert USD to BTC
-    const btcAmount = Number(amountUsd) / btcPrice
-
-    // Step 3: Convert BTC to millisatoshis (1 BTC = 100,000,000,000 msats)
-    const msats = Math.round(btcAmount * 100_000_000_000)
-
-    console.log(`[Speed Invoice] Creating invoice for $${amountUsd} = ${btcAmount} BTC = ${msats} msats`)
-
-    // Step 4: Create invoice using Speed v1 API
+    // 3) Create invoice via Speed (SERVER-SIDE)
     const invoiceRes = await fetch("https://api.tryspeed.com/v1/invoices", {
       method: "POST",
       headers: {
@@ -58,52 +60,42 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         msats,
-        description: `Sirens Fortune Deposit - $${amountUsd} USD`,
-        metadata: {
-          userId: userId || "anonymous",
-          amountUsd: amountUsd.toString(),
-        },
+        description: `Sirens Fortune Deposit - $${usd} USD`,
+        metadata: { userId: userId || "anonymous", amountUsd: String(usd) },
       }),
-    })
+    });
 
-    const invoiceData = await invoiceRes.json()
+    const invoiceData = await invoiceRes.json();
 
     if (!invoiceRes.ok) {
-      console.error("[Speed Invoice] API error:", invoiceData)
+      console.error("[Speed] Invoice creation error:", invoiceData);
       return NextResponse.json(
-        { error: invoiceData.message || invoiceData.error || "Failed to create invoice" },
+        { error: invoiceData?.message || invoiceData?.error || "Failed to create invoice" },
         { status: invoiceRes.status }
-      )
+      );
     }
 
-    // Step 5: Extract payment request from response
     const paymentRequest =
       invoiceData.invoice ||
       invoiceData.paymentRequest ||
       invoiceData.payment_request ||
-      invoiceData.pr ||
-      null
+      invoiceData.pr;
 
     if (!paymentRequest) {
-      console.error("[Speed Invoice] Missing payment request in response:", invoiceData)
-      return NextResponse.json(
-        { error: "No payment request returned from Speed API" },
-        { status: 500 }
-      )
+      console.error("[Speed] Missing payment request in response:", invoiceData);
+      return NextResponse.json({ error: "No payment request returned" }, { status: 502 });
     }
-
-    console.log(`[Speed Invoice] Invoice created successfully`)
 
     return NextResponse.json({
       paymentRequest,
-      amountUsd,
+      amountUsd: usd,
       btcAmount,
       msats,
       btcPrice,
       invoiceId: invoiceData.id,
-    })
+    });
   } catch (err) {
-    console.error("[Speed Invoice] Server error:", err)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    console.error("[Speed] Server error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
