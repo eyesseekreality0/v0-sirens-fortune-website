@@ -1,4 +1,13 @@
 const SPEED_BASE_URL = "https://api.tryspeed.com/v1"
+const DEFAULT_FALLBACK_BTC_USD_RATE = 50_000
+
+const FALLBACK_RATE_ENV_KEYS = [
+  "SPEED_FALLBACK_BTC_USD",
+  "SPEED_FALLBACK_RATE",
+  "FALLBACK_BTC_USD_RATE",
+  "FALLBACK_BTC_RATE",
+  "NEXT_PUBLIC_FALLBACK_BTC_RATE",
+]
 
 export function getSpeedBaseUrl() {
   return process.env.SPEED_BASE_URL || SPEED_BASE_URL
@@ -18,6 +27,22 @@ export function buildSpeedHeaders() {
   }
 
   return { headers, secretKey: apiKey, publishableKey: "", version: undefined }
+}
+
+export function getSpeedFallbackBtcUsdRate() {
+  const env = process.env as Record<string, string | undefined>
+
+  for (const key of FALLBACK_RATE_ENV_KEYS) {
+    const raw = env[key]
+    if (!raw) continue
+
+    const parsed = Number(raw)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+
+  return DEFAULT_FALLBACK_BTC_USD_RATE
 }
 
 export function parseSpeedRate(payload: unknown): number | undefined {

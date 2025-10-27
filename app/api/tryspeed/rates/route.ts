@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { buildSpeedHeaders, getSpeedBaseUrl, parseSpeedRate } from "@/lib/tryspeed"
+import {
+  buildSpeedHeaders,
+  getSpeedBaseUrl,
+  getSpeedFallbackBtcUsdRate,
+  parseSpeedRate,
+} from "@/lib/tryspeed"
 
 export async function GET(req: NextRequest) {
   const { headers } = buildSpeedHeaders()
@@ -21,13 +26,19 @@ export async function GET(req: NextRequest) {
     const rate = await fetchRate(headers, from, to)
 
     if (rate === undefined) {
+      if (from === "BTC" && to === "USD") {
+        const fallbackRate = getSpeedFallbackBtcUsdRate()
+        console.warn("[TrySpeed] Rate lookup failed. Using fallback BTC/USD rate", { fallbackRate })
+        return NextResponse.json({ rate: fallbackRate, from, to, stale: true, source: "fallback" })
+      }
+
       return NextResponse.json(
         { error: "Unable to fetch rate." },
         { status: 502 },
       )
     }
 
-    return NextResponse.json({ rate, from, to })
+    return NextResponse.json({ rate, from, to, stale: false, source: "live" })
   } catch (error) {
     console.error("[TrySpeed] Unexpected rate error", error)
     return NextResponse.json({ error: "Unexpected server error." }, { status: 500 })

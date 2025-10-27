@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { buildSpeedHeaders, getSpeedBaseUrl, parseSpeedRate } from "@/lib/tryspeed"
+import {
+  buildSpeedHeaders,
+  getSpeedBaseUrl,
+  getSpeedFallbackBtcUsdRate,
+  parseSpeedRate,
+} from "@/lib/tryspeed"
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +29,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const rate = await fetchBtcUsdRate(headers)
+    const liveRate = await fetchBtcUsdRate(headers)
+    let rateUsed =
+      liveRate !== undefined && Number.isFinite(liveRate) && liveRate > 0 ? liveRate : undefined
+    let rateSource: "live" | "fallback" | "client" | undefined = rateUsed ? "live" : undefined
+
+    if (!rateUsed) {
+      const fallbackRate = getSpeedFallbackBtcUsdRate()
+      if (Number.isFinite(fallbackRate) && fallbackRate > 0) {
+        rateUsed = fallbackRate
+        rateSource = "fallback"
+        console.warn("[TrySpeed] Falling back to static BTC/USD rate for invoice", {
+          fallbackRate,
+        })
+      }
+    }
+
     const btcAmountFromClient =
       typeof body.btcAmount === "number"
         ? body.btcAmount
@@ -32,12 +52,20 @@ export async function POST(req: NextRequest) {
           ? Number(body.btcAmount)
           : undefined
 
-    const btcAmount =
-      rate !== undefined
-        ? amountUsd / rate
-        : btcAmountFromClient && Number.isFinite(btcAmountFromClient)
-          ? btcAmountFromClient
-          : undefined
+    let btcAmount =
+      rateUsed !== undefined ? amountUsd / rateUsed : undefined
+
+    if (
+      (btcAmount === undefined || !Number.isFinite(btcAmount)) &&
+      btcAmountFromClient !== undefined &&
+      Number.isFinite(btcAmountFromClient)
+    ) {
+      btcAmount = btcAmountFromClient
+      if (!rateSource) {
+        rateSource = "client"
+      }
+      rateUsed = rateSource === "client" ? undefined : rateUsed
+    }
 
     const msats =
       btcAmount !== undefined && Number.isFinite(btcAmount)
@@ -101,12 +129,25 @@ export async function POST(req: NextRequest) {
 
     if (msats && msats > 0) {
       responseBody.msats = msats
-      responseBody.btcAmount = btcAmount
+      if (btcAmount !== undefined && Number.isFinite(btcAmount)) {
+        responseBody.btcAmount = btcAmount
+      }
     } else if (invoicePayload?.amountMsats) {
       const parsedMsats = Number(invoicePayload.amountMsats)
       if (Number.isFinite(parsedMsats)) {
         responseBody.msats = parsedMsats
         responseBody.btcAmount = parsedMsats / 100_000_000_000
+      }
+    }
+
+    if (rateUsed !== undefined) {
+      responseBody.rate = rateUsed
+    }
+
+    if (rateSource) {
+      responseBody.rateSource = rateSource
+      if (rateSource === "fallback") {
+        responseBody.rateStale = true
       }
     }
 

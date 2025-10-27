@@ -23,6 +23,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
   const [copied, setCopied] = useState(false)
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(true)
+  const [rateSource, setRateSource] = useState<"live" | "fallback" | "client">("live")
 
   // ✅ Fetch live BTC/USD rate from Speed API
   useEffect(() => {
@@ -30,17 +31,27 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
       try {
         setLoadingPrice(true)
         const res = await fetch("/api/tryspeed/rates?from=BTC&to=USD")
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
 
-        if (res.ok && typeof data.rate === "number") {
-          setBtcPrice(data.rate)
+        const parsedRate =
+          typeof data.rate === "number"
+            ? data.rate
+            : typeof data.rate === "string"
+              ? Number(data.rate)
+              : undefined
+
+        if (res.ok && parsedRate !== undefined && Number.isFinite(parsedRate) && parsedRate > 0) {
+          setBtcPrice(parsedRate)
+          setRateSource(data.source === "fallback" || data.stale ? "fallback" : "live")
         } else {
           console.warn("BTC price not found in response", data)
           setBtcPrice(50000)
+          setRateSource("fallback")
         }
       } catch (err) {
         console.error("BTC price fetch error:", err)
         setBtcPrice(50000)
+        setRateSource("fallback")
       } finally {
         setLoadingPrice(false)
       }
@@ -63,6 +74,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
       setShowQR(false)
       setCopied(false)
       setIsLoading(false)
+      setRateSource("live")
     }
   }, [open])
 
@@ -106,7 +118,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
         }),
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
 
       if (!res.ok || !data.invoice) {
         throw new Error(data.error || "Failed to generate Lightning invoice")
@@ -121,6 +133,25 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
         if (!Number.isNaN(parsed)) {
           setBtcAmount(parsed.toFixed(8))
         }
+      }
+      if (typeof data.rate === "number" && Number.isFinite(data.rate) && data.rate > 0) {
+        setBtcPrice(data.rate)
+      } else if (typeof data.rate === "string") {
+        const parsed = Number(data.rate)
+        if (!Number.isNaN(parsed) && Number.isFinite(parsed) && parsed > 0) {
+          setBtcPrice(parsed)
+        }
+      }
+      if (typeof data.rateSource === "string") {
+        if (data.rateSource === "fallback" || data.rateStale) {
+          setRateSource("fallback")
+        } else if (data.rateSource === "client") {
+          setRateSource("client")
+        } else {
+          setRateSource("live")
+        }
+      } else if (data.rateStale) {
+        setRateSource("fallback")
       }
       if (typeof data.expiresAt === "string") {
         setExpiresAt(data.expiresAt)
@@ -186,9 +217,21 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
                 {btcPrice && !loadingPrice && (
                   <p className="text-xs text-foreground/50">
                     BTC Price: ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                    {rateSource !== "live" && (
+                      <span className="ml-2 text-[10px] uppercase tracking-[0.2em] text-amber-200/80">
+                        {rateSource === "client" ? "Manual" : "Fallback"} rate
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
+
+              {rateSource !== "live" && (
+                <p className="text-xs text-amber-200/90">
+                  Live pricing is unavailable right now. We&apos;re using a {rateSource === "client" ? "manual" : "fallback"}
+                  {" "}conversion so you can keep going.
+                </p>
+              )}
 
               {btcAmount && (
                 <div className="bg-card/50 border border-primary/20 rounded-xl p-3">
