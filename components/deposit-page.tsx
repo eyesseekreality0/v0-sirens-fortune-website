@@ -15,8 +15,6 @@ export function DepositPage() {
   const [showLightning, setShowLightning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleHelioDeposit = () => setShowDepositWidget(true)
-
   const handleLinkDeposit = () => {
     setIsLoading(true)
     window.open("https://sirenspay.vercel.app/api/deposit.js", "_blank")
@@ -51,7 +49,7 @@ export function DepositPage() {
               Choose your preferred deposit method
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-xl mx-auto">
               <button
                 onClick={handleLinkDeposit}
                 disabled={isLoading}
@@ -65,20 +63,6 @@ export function DepositPage() {
                   </div>
                   <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Link</h3>
                   <p className="text-sm text-foreground/70 text-center">Card Deposit</p>
-                </div>
-              </button>
-
-              <button
-                onClick={handleHelioDeposit}
-                disabled={isLoading}
-                className="group relative p-8 rounded-2xl border-2 border-accent/30 bg-card/70 backdrop-blur-md hover:border-accent/60 hover:bg-card/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <div className="flex flex-col items-center gap-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-accent/20 to-primary/20 group-hover:from-accent/30 group-hover:to-primary/30 transition-colors">
-                    <CreditCard className="w-8 h-8 text-accent" />
-                  </div>
-                  <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Helio</h3>
-                  <p className="text-sm text-foreground/70 text-center">Pay with card or crypto</p>
                 </div>
               </button>
 
@@ -101,8 +85,6 @@ export function DepositPage() {
 
       <Footer />
 
-      <DepositWidget open={showDepositWidget} onOpenChange={setShowDepositWidget} />
       <LightningDepositModal open={showLightning} onOpenChange={setShowLightning} />
     </div>
   )
-}
