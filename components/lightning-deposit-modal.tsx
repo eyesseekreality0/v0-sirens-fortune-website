@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { X, Copy, Check } from "lucide-react"
+import { X, Copy, Check, ExternalLink } from "lucide-react"
 import QRCode from "qrcode.react"
 
 interface LightningDepositModalProps {
@@ -22,18 +22,20 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(true)
 
-  // Fetch BTC price on mount
+  // Fetch BTC price from Speed API
   useEffect(() => {
     const fetchBtcPrice = async () => {
       try {
         setLoadingPrice(true)
         const res = await fetch("https://api.tryspeed.com/api/v0/rates?from=BTC&to=USD")
         const data = await res.json()
+        
         if (data.rate) {
           setBtcPrice(data.rate)
         } else {
           // Fallback to a reasonable estimate if API fails
           setBtcPrice(50000)
+          console.warn("Failed to fetch BTC price, using fallback")
         }
       } catch (err) {
         console.error("Failed to fetch BTC price:", err)
@@ -43,8 +45,11 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
         setLoadingPrice(false)
       }
     }
-    fetchBtcPrice()
-  }, [])
+    
+    if (open) {
+      fetchBtcPrice()
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -120,6 +125,12 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     }
   }
 
+  const handleOpenInWallet = () => {
+    if (lightningInvoice) {
+      window.location.href = `lightning:${lightningInvoice}`
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-lg mx-auto p-6 bg-card/95 backdrop-blur-md border-2 border-primary/30 rounded-2xl overflow-y-auto max-h-[90vh]">
@@ -128,7 +139,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold colorful-text font-serif">Bitcoin Lightning</h2>
-            <button onClick={() => onOpenChange(false)} className="p-2 hover:bg-card rounded-lg">
+            <button onClick={() => onOpenChange(false)} className="p-2 hover:bg-card rounded-lg transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -162,7 +173,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
               {btcAmount && (
                 <div className="bg-card/50 border border-primary/20 rounded-xl p-3">
                   <p className="text-sm text-foreground/70">
-                    <span className="font-semibold">${usdAmount} USD</span> = <span className="font-semibold">{btcAmount} BTC</span>
+                    <span className="font-semibold">${usdAmount} USD</span> ≈ <span className="font-semibold">{btcAmount} BTC</span>
                   </p>
                 </div>
               )}
@@ -194,7 +205,7 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
               </div>
 
               <div className="bg-card/50 border border-primary/20 rounded-xl p-4">
-                <p className="text-xs text-foreground/50 mb-2">Invoice (tap to copy):</p>
+                <p className="text-xs text-foreground/50 mb-2">Lightning Invoice:</p>
                 <div 
                   onClick={handleCopyInvoice}
                   className="text-xs text-foreground/70 break-all cursor-pointer hover:text-foreground transition-colors p-2 bg-card/70 rounded border border-primary/20"
@@ -203,29 +214,39 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <Button
-                  onClick={handleCopyInvoice}
-                  className="flex-1 py-3 px-4 bg-gradient-to-br from-[var(--button-primary-from)] via-[var(--button-primary-via)] to-[var(--button-primary-to)] hover:from-[var(--button-primary-hover-from)] hover:via-[var(--button-primary-hover-via)] hover:to-[var(--button-primary-hover-to)] text-primary-foreground font-bold rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                  onClick={handleOpenInWallet}
+                  className="w-full py-3 px-4 bg-gradient-to-br from-[var(--button-secondary-from)] via-[var(--button-secondary-via)] to-[var(--button-secondary-to)] hover:from-[var(--button-secondary-hover-from)] hover:via-[var(--button-secondary-hover-via)] hover:to-[var(--button-secondary-hover-to)] text-primary-foreground font-bold rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2"
                 >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copy Invoice
-                    </>
-                  )}
+                  <ExternalLink className="w-4 h-4" />
+                  Open in Wallet
                 </Button>
-                <Button
-                  onClick={() => setShowQR(false)}
-                  className="flex-1 py-3 px-4 bg-gradient-to-br from-accent/50 to-primary/50 hover:from-accent/70 hover:to-primary/70 text-primary-foreground font-bold rounded-xl transition-all transform hover:scale-105"
-                >
-                  Back
-                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleCopyInvoice}
+                    className="flex-1 py-3 px-4 bg-gradient-to-br from-[var(--button-primary-from)] via-[var(--button-primary-via)] to-[var(--button-primary-to)] hover:from-[var(--button-primary-hover-from)] hover:via-[var(--button-primary-hover-via)] hover:to-[var(--button-primary-hover-to)] text-primary-foreground font-bold rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy Invoice
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => setShowQR(false)}
+                    className="flex-1 py-3 px-4 bg-gradient-to-br from-accent/50 to-primary/50 hover:from-accent/70 hover:to-primary/70 text-primary-foreground font-bold rounded-xl transition-all transform hover:scale-105"
+                  >
+                    Back
+                  </Button>
+                </div>
               </div>
             </>
           )}
