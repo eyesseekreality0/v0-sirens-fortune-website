@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const { headers } = buildSpeedHeaders()
     if (!headers) {
-      console.error("[TrySpeed] Missing Speed credentials. Set SPEED_SECRET_KEY or SPEED_API_KEY.")
+      console.error("[TrySpeed] Missing Speed credentials. Set SPEED_API_KEY.")
       return NextResponse.json(
         { error: "Server misconfiguration. Try again later." },
         { status: 500 },

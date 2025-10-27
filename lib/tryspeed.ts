@@ -5,33 +5,19 @@ export function getSpeedBaseUrl() {
 }
 
 export function buildSpeedHeaders() {
-  const secretKey = process.env.SPEED_SECRET_KEY || process.env.SPEED_API_KEY || ""
-  const publishableKey = process.env.SPEED_PUBLISHABLE_KEY || process.env.SPEED_PUBLIC_KEY || ""
-  const version = process.env.SPEED_API_VERSION || process.env.SPEED_VERSION
+  const apiKey = process.env.SPEED_API_KEY || ""
 
-  if (!secretKey && !publishableKey) {
-    return { headers: null, secretKey: "", publishableKey: "", version }
+  if (!apiKey) {
+    return { headers: null, secretKey: "", publishableKey: "", version: undefined }
   }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    "x-api-key": apiKey,
   }
 
-  if (secretKey) {
-    headers.Authorization = `Bearer ${secretKey}`
-  }
-
-  if (publishableKey) {
-    headers["x-api-key"] = publishableKey
-  } else if (secretKey) {
-    headers["x-api-key"] = secretKey
-  }
-
-  if (version) {
-    headers["Speed-Version"] = version
-  }
-
-  return { headers, secretKey, publishableKey, version }
+  return { headers, secretKey: apiKey, publishableKey: "", version: undefined }
 }
 
 export function parseSpeedRate(payload: unknown): number | undefined {
