@@ -6,12 +6,10 @@ import { OceanBackground } from "@/components/ocean-background"
 import { AnimatedFish } from "@/components/animated-fish"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { CreditCard, ArrowLeft, Zap } from "lucide-react"
-import { DepositWidget } from "./deposit-widget"
+import { ArrowLeft, Zap } from "lucide-react"
 import { LightningDepositModal } from "./lightning-deposit-modal"
 
 export function DepositPage() {
-  const [showDepositWidget, setShowDepositWidget] = useState(false)
   const [showLightning, setShowLightning] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -57,8 +55,18 @@ export function DepositPage() {
               >
                 <div className="flex flex-col items-center gap-4">
                   <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 group-hover:from-primary/30 group-hover:to-secondary/30 transition-colors">
-                    <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    <svg
+                      className="w-8 h-8 text-primary"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
                     </svg>
                   </div>
                   <h3 className="text-2xl font-bold colorful-text font-serif">Deposit with Link</h3>
@@ -84,7 +92,7 @@ export function DepositPage() {
       </main>
 
       <Footer />
-
       <LightningDepositModal open={showLightning} onOpenChange={setShowLightning} />
     </div>
   )
+}
