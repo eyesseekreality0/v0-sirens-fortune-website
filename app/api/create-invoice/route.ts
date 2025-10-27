@@ -10,17 +10,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
-    const SPEED_SECRET_KEY = process.env.SPEED_SECRET_KEY; // e.g. sk_test_...
-    if (!SPEED_SECRET_KEY) {
+    const SPEED_API_KEY = process.env.SPEED_API_KEY; // e.g. sk_test_...
+    if (!SPEED_API_KEY) {
       return NextResponse.json(
-        { error: "Server misconfiguration: SPEED_SECRET_KEY missing" },
+        { error: "Server misconfiguration: SPEED_API_KEY missing" },
         { status: 500 }
       );
     }
 
     // HTTP Basic auth per TrySpeed docs: username = secret key, password = empty
     const authHeader =
-      "Basic " + Buffer.from(`${SPEED_SECRET_KEY}:`).toString("base64");
+      "Basic " + Buffer.from(`${SPEED_API_KEY}:`).toString("base64");
 
     // 1) Create a DRAFT invoice in USD with a custom line item
     const createRes = await fetch("https://api.tryspeed.com/invoices", {
