@@ -18,13 +18,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // PRODUCTION - api.tryspeed.com
+    // Convert BTC to millisatoshis (msat)
+    // 1 BTC = 100,000,000 satoshis = 100,000,000,000 millisatoshis
+    const msats = Math.round(Number(amount) * 100_000_000_000)
+
+    console.log(`[Lightning] Creating invoice for ${amount} BTC = ${msats} msats`)
+
     const apiUrl = "https://api.tryspeed.com/api/v0/invoices"
-
-    const satoshis = Math.round(Number(amount) * 100_000_000)
-    const msats = satoshis * 1000
-
-    console.log(`[Lightning] Creating invoice for ${amount} BTC = ${satoshis} sats = ${msats} msats`)
 
     const res = await fetch(apiUrl, {
       method: "POST",
@@ -48,12 +48,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(`[Lightning] Invoice created: ${data.invoice?.substring(0, 50)}...`)
+    console.log(`[Lightning] Invoice created successfully`)
 
     return NextResponse.json({
       invoice: data.invoice || data.paymentRequest || data.pr,
       amount: amount,
-      satoshis: satoshis,
       msats: msats,
       id: data.id,
     })
