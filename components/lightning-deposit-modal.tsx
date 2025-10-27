@@ -14,15 +14,15 @@ interface LightningDepositModalProps {
 
 export function LightningDepositModal({ open, onOpenChange }: LightningDepositModalProps) {
   const [usdAmount, setUsdAmount] = useState("");
-  const [btcAmount, setBtcAmount] = useState("");         // set from server response
-  const [btcPrice, setBtcPrice] = useState<number | null>(null); // set from server response
+  const [btcAmount, setBtcAmount] = useState("");
+  const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [lightningInvoice, setLightningInvoice] = useState("");
   const [error, setError] = useState("");
   const [showQR, setShowQR] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Reset modal state on close
+  // Reset modal on close
   useEffect(() => {
     if (!open) {
       setUsdAmount("");
@@ -36,14 +36,13 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     }
   }, [open]);
 
-  // Local USD input (conversion now shown AFTER server returns)
   const handleUsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUsdAmount(e.target.value);
-    setBtcAmount(""); // clear any stale conversion until we get fresh server data
+    setBtcAmount("");
     setBtcPrice(null);
   };
 
-  // Create invoice via YOUR server route (no CORS)
+  // ---- ONLY /api/create-invoice here ----
   const handleGenerateQR = async () => {
     const usd = Number(usdAmount);
     if (!usd || usd <= 0) {
@@ -55,23 +54,25 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/speed/create-invoice", {
+      const res = await fetch("/api/create-invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amountUsd: usd,
-          userId: "anonymous-user", // TODO: replace with real user id if available
+          userId: "anonymous-user",
         }),
       });
 
-      const data = await res.json();
+      // Prevent "Unexpected end of JSON" if server returns HTML or empty
+      const contentType = res.headers.get("content-type") || "";
+      const isJson = contentType.includes("application/json");
+      const data = isJson ? await res.json() : { error: await res.text() };
 
       if (!res.ok || !data?.paymentRequest) {
         throw new Error(data?.error || "Failed to generate Lightning invoice");
       }
 
-      // Use authoritative values from server
-      setLightningInvoice(data.paymentRequest as string);
+      setLightningInvoice(String(data.paymentRequest));
       setBtcAmount(String(data.btcAmount ?? ""));
       setBtcPrice(typeof data.btcPrice === "number" ? data.btcPrice : null);
       setShowQR(true);
@@ -99,7 +100,11 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-lg mx-auto p-6 bg-card/95 backdrop-blur-md border-2 border-primary/30 rounded-2xl overflow-y-auto max-h-[90vh]">
+      {/* Add aria-describedby target to silence Radix warning */}
+      <DialogContent
+        className="w-full max-w-lg mx-auto p-6 bg-card/95 backdrop-blur-md border-2 border-primary/30 rounded-2xl overflow-y-auto max-h-[90vh]"
+        aria-describedby="deposit-desc"
+      >
         <DialogTitle className="sr-only">Bitcoin Lightning Deposit</DialogTitle>
 
         <div className="flex flex-col gap-4">
@@ -116,7 +121,9 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
 
           {!showQR ? (
             <>
-              <p className="text-sm text-foreground/70">Enter the USD amount you want to deposit</p>
+              <p id="deposit-desc" className="text-sm text-foreground/70">
+                Enter the USD amount you want to deposit
+              </p>
 
               <div className="flex flex-col gap-2">
                 <input
@@ -136,7 +143,10 @@ export function LightningDepositModal({ open, onOpenChange }: LightningDepositMo
                     <span className="font-semibold">${usdAmount} USD</span> ≈{" "}
                     <span className="font-semibold">{btcAmount} BTC</span>
                     {btcPrice ? (
-                      <span className="text-foreground/50"> {" "}(@ ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}/BTC)</span>
+                      <span className="text-foreground/50">
+                        {" "}
+                        (@ ${btcPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}/BTC)
+                      </span>
                     ) : null}
                   </p>
                 </div>
