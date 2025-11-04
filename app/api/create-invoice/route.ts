@@ -79,15 +79,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 3) Get the Lightning invoice (payment request) from the finalized invoice
+    // TrySpeed should return this in the finalized response
+    const lightningInvoice = finalized.lightning_invoice || finalized.payment_request || null;
+
     // Return what the client needs
     return NextResponse.json({
       invoiceId: finalized.id,
-      hostedUrl: finalized.hosted_invoice_url, // scan/open this to pay (Lightning on Speed's page)
+      hostedUrl: finalized.hosted_invoice_url, // URL to Speed's payment page
+      lightningInvoice: lightningInvoice, // The actual Lightning payment request for QR code
       currency: finalized.currency,
       amount: finalized.invoice_amount,
       status: finalized.status,
     });
   } catch (err) {
+    console.error("Invoice creation error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
